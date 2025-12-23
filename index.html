@@ -123,8 +123,10 @@ const CACHE = {
 };
 
 function fetchProxy(apiUrl){
-  const proxy = `https://weather.wangtaiyang.com/proxy?url=${encodeURIComponent(apiUrl)}`;
-  return fetch(proxy);
+ const apiUrl = `https://api.open-meteo.com/v1/forecast?...`;
+const proxyUrl = `https://weather.wangtaiyang.com/proxy?url=${encodeURIComponent(apiUrl)}`;
+const res = await fetch(proxyUrl);
+
 }
 
 async function geocode(q){
