@@ -1,245 +1,373 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GlobalHub | 深度气象与金融终端</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    <style>
-        :root { --apple-blue: #0071e3; --glass: rgba(255, 255, 255, 0.75); }
-        body {
-            background: #f2f2f7;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-            color: #1d1d1f;
-        }
-        .apple-glass {
-            background: var(--glass);
-            backdrop-filter: blur(25px) saturate(180%);
-            -webkit-backdrop-filter: blur(25px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 24px;
-        }
-        .hide-scroll::-webkit-scrollbar { display: none; }
-        .currency-pill {
-            transition: all 0.2s;
-            border: 1px solid rgba(0,0,0,0.1);
-        }
-        .currency-pill.active {
-            background: var(--apple-blue);
-            color: white;
-            border-color: var(--apple-blue);
-        }
-        .weather-day-card {
-            min-width: 85px;
-            background: rgba(255,255,255,0.4);
-            border-radius: 16px;
-            padding: 12px 8px;
-            text-align: center;
-        }
-        .history-tag { background: #ff9500; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; position: absolute; top: -8px; }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>天气查询 — 实时与 7 天预报（代理 /proxy）</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#071026; --muted:rgba(255,255,255,0.72);
+  --card-radius:14px; --accent1:#5eead4; --accent2:#6366f1;
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:
+  radial-gradient(900px 400px at 10% 10%, rgba(94,234,212,0.04), transparent 8%),
+  radial-gradient(700px 300px at 90% 90%, rgba(99,102,241,0.03), transparent 10%),
+  var(--bg); color:#eaf4ff; -webkit-font-smoothing:antialiased}
+.container{max-width:1100px;margin:28px auto;padding:22px;border-radius:18px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  box-shadow:0 12px 40px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03);position:relative;overflow:hidden}
+.header{display:flex;gap:16px;align-items:center}
+.logo{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:14px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border:1px solid rgba(255,255,255,0.04);backdrop-filter: blur(6px);overflow:visible}
+.logo svg{width:48px;height:48px;display:block}
+.sun-core{transform-origin:center;animation:sunPulse 2200ms ease-in-out infinite}
+.sun-rays{transform-origin:center;animation:sunRotate 8000ms linear infinite}
+.sun-glow{filter:blur(6px);opacity:0.12}
+@keyframes sunPulse{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes sunRotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+
+.title{margin:0;font-size:18px}
+.subtitle{margin:0;color:var(--muted);font-size:13px}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}
+.grid{display:grid;grid-template-columns:420px 1fr;gap:20px;margin-top:18px}
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:var(--card-radius);padding:16px;border:1px solid rgba(255,255,255,0.03);backdrop-filter:blur(10px)}
+.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
+.meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+.small{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center}
+.input, select {background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:inherit;outline:none}
+.input::placeholder{color:rgba(255,255,255,0.35)}
+.btn{background:linear-gradient(90deg,var(--accent1),var(--accent2));border:none;padding:10px 12px;border-radius:10px;color:#04201a;font-weight:700;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit}
+.result-block{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);margin-top:8px}
+.kv{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
+.kv:last-child{border-bottom:none}
+.footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
+
+/* 预报横向滚动 */
+.forecast-row{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding:8px 4px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;align-items:stretch}
+.forecast-row::-webkit-scrollbar{height:8px}
+.forecast-row::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:8px}
+.forecast-card{min-width:220px;max-width:260px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;box-shadow:0 8px 20px rgba(2,6,23,0.45);border:1px solid rgba(255,255,255,0.03);flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
+.forecast-card .date{font-weight:700;font-size:14px;color:#eaf4ff}
+.forecast-card .big{font-weight:700;font-size:18px;color:#fff}
+.forecast-row.dragging{cursor:grabbing}
+
+/* 响应式 */
+@media (max-width:980px){.grid{grid-template-columns:1fr}.panel{padding:12px}}
+</style>
 </head>
-<body class="p-4 md:p-8 lg:p-12">
-
-    <div class="max-w-6xl mx-auto space-y-8">
-        
-        <header class="flex flex-col md:flex-row justify-between items-end mb-8 animate__animated animate__fadeIn">
-            <div>
-                <h1 class="text-4xl font-bold tracking-tight">太阳天气与汇率>太阳>>
-                <p class="text-gray-500 font-medium">实时数据，极速查询>sp>
-            </div>
-            <div id="current-time" class="text-sm font-mono text-gray-400 mt-2 md:mt-0"></div>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <section class="apple-glass p-8 flex flex-col space-y-6 animate__animated animate__fadeInLeft">
-                <h2 class="text-xl font-bold flex items-center">💵 汇率转换器</h2>
-                
-                <div class="space-y-4">
-                    <div>
-                        <span class="text-xs font-bold text-gray-400 block mb-2">换算金额</span>
-                        <input id="amount" type="number" value="100" class="w-full p-4 rounded-xl bg-gray-100/50 border-none outline-none focus:ring-2 ring-blue-500 text-2xl font-bold">
-                    </div>
-
-                    <div class="space-y-3">
-                        <span class="text-xs font-bold text-gray-400 block">基础货币 (From)</span>
-                        <div id="from-list" class="flex flex-wrap gap-2">
-                            </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <span class="text-xs font-bold text-gray-400 block">目标货币 (To)</span>
-                        <div id="to-list" class="flex flex-wrap gap-2">
-                            </div>
-                    </div>
-
-                    <button onclick="updateExchange()" class="w-full bg-[#0071e3] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-500/20 active:scale-95 transition-all">执行换算</button>
-                    
-                    <div id="rate-display" class="bg-white/60 p-6 rounded-2xl text-center hidden animate__animated animate__fadeInUp">
-                        <p class="text-sm text-gray-400 mb-1" id="rate-info">--</p>
-                        <p class="text-4xl font-black text-blue-600 tracking-tighter" id="rate-result">0.00</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="lg:col-span-2 apple-glass p-8 space-y-8 animate__animated animate__fadeInRight">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <h2 class="text-xl font-bold flex items-center">🌤️ 21天深度气象轨迹</h2>
-                    <div class="flex w-full md:w-auto gap-2">
-                        <input id="city-input" type="text" placeholder="城市(如: Tokyo)" class="flex-1 md:w-48 p-3 rounded-xl bg-gray-100/50 border-none outline-none focus:ring-2 ring-blue-500">
-                        <button onclick="fetchWeather()" class="bg-black text-white px-6 py-3 rounded-xl font-bold active:scale-95 transition-all">查询</button>
-                    </div>
-                </div>
-
-                <div id="weather-now" class="grid grid-cols-2 md:grid-cols-4 gap-4 hidden">
-                    <div class="bg-blue-500 text-white p-6 rounded-3xl col-span-2 flex flex-col justify-between">
-                        <p id="now-city" class="text-xl font-bold uppercase tracking-widest">---</p>
-                        <p id="now-temp" class="text-6xl font-black my-4 tracking-tighter">--°</p>
-                        <p class="text-sm opacity-80">当前实况气温</p>
-                    </div>
-                    <div class="bg-white/40 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
-                        <span class="text-xs font-bold text-gray-400">风速</span>
-                        <p id="now-wind" class="text-xl font-bold mt-1">-- km/h</p>
-                    </div>
-                    <div class="bg-white/40 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
-                        <span class="text-xs font-bold text-gray-400">风向度数</span>
-                        <p id="now-dir" class="text-xl font-bold mt-1">--°</p>
-                    </div>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center px-1">
-                        <span class="text-sm font-bold text-gray-400 uppercase tracking-widest">历史与预测序列 (前10天 - 后10天)</span>
-                        <span class="text-xs text-blue-500">横向滚动查看 →</span>
-                    </div>
-                    <div id="timeline" class="flex gap-4 overflow-x-auto pb-4 hide-scroll h-32">
-                        <div class="w-full text-center text-gray-300 py-8">输入城市名以加载气象时间轴数据</div>
-                    </div>
-                </div>
-            </section>
-        </div>
+<body>
+<div class="container" id="app">
+  <header class="header">
+    <div class="logo" aria-hidden="true" title="太阳">
+      <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="太阳图标">
+        <defs>
+          <radialGradient id="g1" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#fff7d9" stop-opacity="0.95"/>
+            <stop offset="60%" stop-color="#ffd98a" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#ffb86b" stop-opacity="0.08"/>
+          </radialGradient>
+        </defs>
+        <circle class="sun-glow" cx="32" cy="24" r="18" fill="url(#g1)" />
+        <g class="sun-rays" fill="#ffd98a" stroke="none" opacity="0.95">
+          <g transform="translate(32,24)">
+            <rect x="-1.2" y="-28" width="2.4" height="10" rx="1" />
+            <rect x="-1.2" y="18" width="2.4" height="10" rx="1" />
+            <rect x="-28" y="-1.2" width="10" height="2.4" rx="1" />
+            <rect x="18" y="-1.2" width="10" height="2.4" rx="1" />
+            <rect x="-20" y="-20" width="6" height="2.4" rx="1" transform="rotate(-45)"/>
+            <rect x="14" y="-20" width="6" height="2.4" rx="1" transform="rotate(45)"/>
+            <rect x="-20" y="14" width="6" height="2.4" rx="1" transform="rotate(45)"/>
+            <rect x="14" y="14" width="6" height="2.4" rx="1" transform="rotate(-45)"/>
+          </g>
+        </g>
+        <g class="sun-core" transform="translate(0,0)">
+          <circle cx="32" cy="24" r="10" fill="#fff7d9" />
+          <circle cx="32" cy="24" r="7.2" fill="#ffd86b" />
+          <circle cx="32" cy="24" r="3.6" fill="#ffb86b" />
+        </g>
+      </svg>
     </div>
+    <div>
+      <h1 class="title">天气查询</h1>
+      <p class="subtitle">实时天气与未来 7 天预报 · 通过 /proxy 转发 API 请求</p>
+    </div>
+  </header>
 
-    <script>
-        const currencies = [
-            {code: 'CNY', name: '人民币'}, {code: 'USD', name: '美元'},
-            {code: 'JPY', name: '日元'}, {code: 'EUR', name: '欧元'},
-            {code: 'THB', name: '泰铢'}, {code: 'AUD', name: '澳元'},
-            {code: 'CAD', name: '加币'}, {code: 'GBP', name: '英镑'}
-        ];
+  <div class="topbar">
+    <div class="small">接口：Open‑Meteo（天气） · Nominatim（地理编码） · 代理路径 /proxy</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn ghost" id="clearCacheBtn">清除缓存</button>
+      <button class="btn ghost" id="exportJsonBtn">导出最近结果 JSON</button>
+    </div>
+  </div>
 
-        let fromCur = 'USD', toCur = 'CNY';
+  <main class="grid" style="margin-top:18px">
+    <section class="panel">
+      <div class="meta">天气查询</div>
 
-        // 初始化汇率列表
-        function initCurrencies() {
-            const fList = document.getElementById('from-list');
-            const tList = document.getElementById('to-list');
-            currencies.forEach(c => {
-                fList.innerHTML += `<button onclick="setCur('from','${c.code}')" id="from-${c.code}" class="currency-pill px-4 py-2 rounded-full text-sm font-medium ${c.code==='USD'?'active':''}">${c.code}</button>`;
-                tList.innerHTML += `<button onclick="setCur('to','${c.code}')" id="to-${c.code}" class="currency-pill px-4 py-2 rounded-full text-sm font-medium ${c.code==='CNY'?'active':''}">${c.code}</button>`;
-            });
-        }
+      <div class="card">
+        <div class="row" style="gap:8px;margin-bottom:8px">
+          <input id="placeInput" class="input" placeholder="输入城市或地址，例如: Osaka, JP" style="flex:1" />
+          <button class="btn" id="searchPlaceBtn">搜索</button>
+        </div>
 
-        function setCur(type, code) {
-            if(type === 'from') {
-                document.querySelectorAll('#from-list button').forEach(b => b.classList.remove('active'));
-                document.getElementById(`from-${code}`).classList.add('active');
-                fromCur = code;
-            } else {
-                document.querySelectorAll('#to-list button').forEach(b => b.classList.remove('active'));
-                document.getElementById(`to-${code}`).classList.add('active');
-                toCur = code;
-            }
-        }
+        <div class="row" style="gap:8px;margin-bottom:8px">
+          <button class="btn" id="locateBtn">使用定位</button>
+          <select id="units" class="input" style="width:140px">
+            <option value="metric">摄氏 / m/s</option>
+            <option value="imperial">华氏 / mph</option>
+          </select>
+          <div style="flex:1"></div>
+        </div>
 
-        async function updateExchange() {
-            const amount = document.getElementById('amount').value;
-            const resBox = document.getElementById('rate-display');
-            try {
-                const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCur}`);
-                const data = await res.json();
-                const rate = data.rates[toCur];
-                document.getElementById('rate-result').innerText = (amount * rate).toLocaleString(undefined, {minimumFractionDigits: 2});
-                document.getElementById('rate-info').innerText = `1 ${fromCur} ≈ ${rate.toFixed(4)} ${toCur}`;
-                resBox.classList.remove('hidden');
-            } catch(e) { alert("汇率服务暂时不可用"); }
-        }
+        <div id="weatherResult" class="result-block" aria-live="polite">
+          <div class="small">请输入城市并选择匹配项，或使用定位。</div>
+        </div>
+      </div>
 
-        async function fetchWeather() {
-            const city = document.getElementById('city-input').value;
-            const timeline = document.getElementById('timeline');
-            if(!city) return;
+      <div class="card" style="margin-top:12px">
+        <div class="meta">工具与信息</div>
+        <div class="kv"><div class="small">最近一次天气</div><div id="lastWeather" class="small">—</div></div>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button class="btn ghost" id="aboutBtn">关于</button>
+          <button class="btn ghost" id="openDocsBtn">接口说明</button>
+        </div>
+      </div>
+    </section>
 
-            try {
-                // 1. 地理定位
-                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`);
-                const geoData = await geoRes.json();
-                if(!geoData.results) throw new Error();
-                const { latitude, longitude, name } = geoData.results[0];
+    <section class="panel">
+      <div class="meta">操作日志与调试</div>
+      <div id="logArea" class="card" style="height:68vh;overflow:auto"></div>
+    </section>
+  </main>
 
-                // 2. 计算日期跨度 (前10天 到 后10天)
-                const today = new Date();
-                const startDate = new Date(today); startDate.setDate(today.getDate() - 10);
-                const endDate = new Date(today); endDate.setDate(today.getDate() + 10);
-                
-                const fmtDate = (d) => d.toISOString().split('T')[0];
+  <div class="footer">提示：若出现跨域或失败，请确认 Worker 白名单并检查 Cloudflare Worker 日志。</div>
+</div>
 
-                // 3. 并发获取历史与预测数据
-                const [histRes, foreRes] = await Promise.all([
-                    fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${latitude}&longitude=${longitude}&start_date=${fmtDate(startDate)}&end_date=${fmtDate(new Date(today.getTime()-86400000))}&daily=temperature_2m_max`),
-                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max&timezone=auto`)
-                ]);
+<script>
+/* 简洁工具 */
+const $ = s => document.querySelector(s);
+const el = id => document.getElementById(id);
+function log(msg){ const area = el('logArea'); const d = document.createElement('div'); d.style.padding='8px 0'; d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`; area.prepend(d); }
 
-                const histData = await histRes.json();
-                const foreData = await foreRes.json();
+/* 简单缓存 */
+const CACHE = {
+  set(k,v,ttlSec=300){ try{ localStorage.setItem('cache_'+k, JSON.stringify({ts:Date.now(),ttl:ttlSec*1000,v})); }catch(e){} },
+  get(k){ try{ const raw = localStorage.getItem('cache_'+k); if(!raw) return null; const r = JSON.parse(raw); if(Date.now()-r.ts>r.ttl){ localStorage.removeItem('cache_'+k); return null;} return r.v;}catch(e){return null} },
+  clear(){ Object.keys(localStorage).filter(k=>k.startsWith('cache_')).forEach(k=>localStorage.removeItem(k)); }
+};
 
-                // 渲染实况
-                document.getElementById('weather-now').classList.remove('hidden');
-                document.getElementById('now-city').innerText = name;
-                document.getElementById('now-temp').innerText = Math.round(foreData.current_weather.temperature) + '°';
-                document.getElementById('now-wind').innerText = foreData.current_weather.windspeed + ' km/h';
-                document.getElementById('now-dir').innerText = foreData.current_weather.winddirection + '°';
+/* 格式化 */
+function fmt(n, digits=1){ return Number(n).toLocaleString(undefined, {maximumFractionDigits:digits}); }
 
-                // 合并时间轴
-                timeline.innerHTML = '';
-                
-                // 历史数据部分
-                histData.daily.time.forEach((t, i) => {
-                    const day = t.split('-').slice(1).join('/');
-                    timeline.innerHTML += `
-                        <div class="weather-day-card relative opacity-60">
-                            <span class="history-tag">历史</span>
-                            <p class="text-[10px] font-bold text-gray-400 mb-1">${day}</p>
-                            <p class="text-lg font-black">${Math.round(histData.daily.temperature_2m_max[i])}°</p>
-                        </div>`;
-                });
+/* ================= 地理编码（通过代理） ================= */
+async function geocodePlace(q){
+  const key = 'geo_'+q;
+  const cached = CACHE.get(key);
+  if(cached) return cached;
+  const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
+  const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
+  const res = await fetchWithTimeout(proxyUrl, {}, 12000);
+  if(!res.ok) throw new Error('地理编码代理失败 ' + res.status);
+  const j = await res.json();
+  if(!j || j.length===0) throw new Error('未找到地点');
+  CACHE.set(key, j, 3600);
+  return j;
+}
 
-                // 预测数据部分 (含今日)
-                foreData.daily.time.forEach((t, i) => {
-                    const isToday = i === 0;
-                    const day = t.split('-').slice(1).join('/');
-                    timeline.innerHTML += `
-                        <div class="weather-day-card ${isToday?'ring-2 ring-blue-500 bg-white shadow-sm':''}">
-                            <p class="text-[10px] font-bold ${isToday?'text-blue-500':'text-gray-400'} mb-1">${isToday?'今日':day}</p>
-                            <p class="text-lg font-black">${Math.round(foreData.daily.temperature_2m_max[i])}°</p>
-                        </div>`;
-                });
+/* ================= 天气查询（通过代理） ================= */
+async function fetchWeather(lat, lon, units='metric'){
+  const tempUnit = units === 'imperial' ? 'fahrenheit' : 'celsius';
+  const windUnit = units === 'imperial' ? 'mph' : 'ms';
+  const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current_weather=true&timezone=auto&temperature_unit=${tempUnit}&windspeed_unit=${windUnit}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&forecast_days=7`;
+  const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
+  const cached = CACHE.get(`weather_${lat}_${lon}_${units}`);
+  if(cached){ log('使用缓存天气'); return cached; }
+  const res = await fetchWithTimeout(proxyUrl, {}, 12000);
+  if(!res.ok) throw new Error('天气代理失败 ' + res.status);
+  const j = await res.json();
+  CACHE.set(`weather_${lat}_${lon}_${units}`, j, 300);
+  return j;
+}
 
-                // 滚动到今日位置 (中间)
-                setTimeout(() => timeline.scrollTo({left: 85 * 9, behavior: 'smooth'}), 500);
+/* fetch 超时包装 */
+function fetchWithTimeout(url, opts={}, timeout=10000){
+  return Promise.race([
+    fetch(url, opts),
+    new Promise((_, rej) => setTimeout(()=> rej(new Error('请求超时')), timeout))
+  ]);
+}
 
-            } catch(e) { alert("找不到该城市或气象站连接失败"); }
-        }
+/* ================= 渲染天气（实时 + 7 天） ================= */
+function renderWeather(data, label, fromCache=false){
+  const cw = data.current_weather || null;
+  const daily = data.daily || {};
+  const unitTemp = el('units').value === 'imperial' ? '°F' : '°C';
+  const windUnit = el('units').value === 'imperial' ? 'mph' : 'm/s';
 
-        // 时间更新
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('current-time').innerText = now.toLocaleString();
-        }, 1000);
+  const header = [];
+  header.push(`<div class="meta">当前天气 · ${label} ${fromCache? '(缓存)' : ''}</div>`);
+  if(cw){
+    header.push(`<div class="kv"><div>实时温度</div><div class="big">${fmt(cw.temperature,1)}${unitTemp}</div></div>`);
+    header.push(`<div class="kv"><div>风速</div><div>${fmt(cw.windspeed,1)} ${windUnit}</div></div>`);
+    header.push(`<div class="kv"><div>风向</div><div>${cw.winddirection}°</div></div>`);
+    header.push(`<div class="kv"><div>观测时间</div><div>${cw.time}</div></div>`);
+  } else {
+    header.push(`<div class="small">无实时数据</div>`);
+  }
 
-        window.onload = () => { initCurrencies(); updateExchange(); };
-    </script>
+  const times = daily.time || [];
+  const tmax = daily.temperature_2m_max || [];
+  const tmin = daily.temperature_2m_min || [];
+  const precip = daily.precipitation_sum || [];
+  const windmax = daily.windspeed_10m_max || [];
+
+  const cards = [];
+  for(let i=0;i<times.length;i++){
+    const date = times[i];
+    const maxv = (tmax[i] !== undefined) ? `${fmt(tmax[i],1)}${unitTemp}` : '—';
+    const minv = (tmin[i] !== undefined) ? `${fmt(tmin[i],1)}${unitTemp}` : '—';
+    const prec = (precip[i] !== undefined) ? `${fmt(precip[i],1)} mm` : '-';
+    const wv = (windmax[i] !== undefined) ? `${fmt(windmax[i],1)} ${windUnit}` : '-';
+    const isToday = (new Date(date).toDateString() === new Date().toDateString());
+    const realtime = isToday && cw ? `<div class="kv"><div>实时</div><div class="big">${fmt(cw.temperature,1)}${unitTemp}</div></div>` : '';
+    cards.push(`
+      <div class="forecast-card" role="group" aria-label="预报 ${date}">
+        <div class="date">${date}</div>
+        ${realtime}
+        <div class="kv"><div>最高</div><div>${maxv}</div></div>
+        <div class="kv"><div>最低</div><div>${minv}</div></div>
+        <div class="kv"><div>风速</div><div>${wv}</div></div>
+        <div class="kv"><div>降水</div><div>${prec}</div></div>
+      </div>
+    `);
+  }
+
+  const html = [];
+  html.push(header.join(''));
+  html.push('<div class="meta" style="margin-top:8px">7 天预报（横向滑动查看）</div>');
+  html.push(`<div id="forecastRow" class="forecast-row">${cards.join('')}</div>`);
+  el('weatherResult').innerHTML = html.join('');
+
+  el('lastWeather').textContent = `${label} ${cw ? fmt(cw.temperature,1) + unitTemp : ''}`;
+
+  // 启用鼠标拖拽滚动
+  const row = document.getElementById('forecastRow');
+  if(row){
+    let isDown=false, startX=0, scrollLeft=0;
+    row.addEventListener('mousedown', e=>{
+      isDown=true; row.classList.add('dragging');
+      startX = e.pageX - row.offsetLeft;
+      scrollLeft = row.scrollLeft;
+      e.preventDefault();
+    });
+    window.addEventListener('mouseup', ()=>{ isDown=false; row.classList.remove('dragging'); });
+    row.addEventListener('mouseleave', ()=>{ isDown=false; row.classList.remove('dragging'); });
+    row.addEventListener('mousemove', e=>{
+      if(!isDown) return;
+      const x = e.pageX - row.offsetLeft;
+      const walk = (x - startX) * 1.2;
+      row.scrollLeft = scrollLeft - walk;
+    });
+    // 鼠标滚轮横向支持（按住 Shift 或触控板）
+    row.addEventListener('wheel', e=>{
+      if(Math.abs(e.deltaX) > 0 || e.shiftKey){
+        e.preventDefault();
+        row.scrollLeft += e.deltaY || e.deltaX;
+      }
+    }, {passive:false});
+  }
+}
+
+/* ================= 交互逻辑 ================= */
+async function onSearchPlace(){
+  const q = el('placeInput').value.trim();
+  if(!q){ el('weatherResult').innerHTML = '<div class="small">请输入城市或地址。</div>'; return; }
+  el('weatherResult').innerHTML = '搜索中…';
+  try{
+    const places = await geocodePlace(q);
+    const list = places.slice(0,6).map(p=>`<div class="card place-item" data-lat="${p.lat}" data-lon="${p.lon}" style="cursor:pointer;margin-bottom:8px">${p.display_name}</div>`).join('');
+    el('weatherResult').innerHTML = `<div class="meta">请选择匹配地点</div>${list}`;
+    Array.from(document.querySelectorAll('.place-item')).forEach(node=>{
+      node.addEventListener('click', ()=> {
+        const lat = node.getAttribute('data-lat'), lon = node.getAttribute('data-lon');
+        const label = node.textContent;
+        fetchAndRenderWeather(lat, lon, label);
+      });
+    });
+    log(`地理编码：${q} 返回 ${places.length} 条`);
+  }catch(e){
+    el('weatherResult').innerHTML = `<div class="small" style="color:#ffb3b3">地理编码失败：${e.message}</div>`;
+    log('地理编码失败: ' + e.message);
+  }
+}
+
+async function onLocate(){
+  if(!navigator.geolocation){ el('weatherResult').innerHTML = '<div class="small">浏览器不支持定位。</div>'; return; }
+  el('weatherResult').innerHTML = '获取定位中…';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat = pos.coords.latitude.toFixed(6), lon = pos.coords.longitude.toFixed(6);
+    fetchAndRenderWeather(lat, lon, `当前位置 (${lat}, ${lon})`);
+  }, err=>{
+    el('weatherResult').innerHTML = `<div class="small" style="color:#ffb3b3">定位失败：${err.message}</div>`;
+    log('定位失败: ' + err.message);
+  }, {enableHighAccuracy:false, timeout:8000});
+}
+
+async function fetchAndRenderWeather(lat, lon, label){
+  el('weatherResult').innerHTML = '加载天气中…';
+  const units = el('units').value;
+  try{
+    const data = await fetchWeather(lat, lon, units);
+    renderWeather(data, label, false);
+    log(`天气查询 ${label} (${lat},${lon}) 成功`);
+    localStorage.setItem('last_weather', JSON.stringify({label,lat,lon,ts:Date.now(),data}));
+  }catch(e){
+    el('weatherResult').innerHTML = `<div class="small" style="color:#ffb3b3">天气查询失败：${e.message}</div>`;
+    log('天气查询失败: ' + e.message);
+  }
+}
+
+/* 导出最近结果 */
+function onExportJson(){
+  const lastWeather = localStorage.getItem('last_weather');
+  const payload = { lastWeather: lastWeather ? JSON.parse(lastWeather) : null, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'weather_export.json'; a.click(); URL.revokeObjectURL(url);
+  log('导出 JSON');
+}
+
+/* 关于 */
+function showAbout(){ alert('天气查询示例 · 使用 Open‑Meteo 与 Nominatim，经由 /proxy 代理。'); }
+
+/* 清除缓存 */
+function clearCache(){ CACHE.clear(); log('已清除缓存'); alert('已清除缓存'); }
+
+/* 初始化 */
+document.addEventListener('DOMContentLoaded', ()=>{
+  el('searchPlaceBtn').addEventListener('click', onSearchPlace);
+  el('locateBtn').addEventListener('click', onLocate);
+  el('exportJsonBtn').addEventListener('click', onExportJson);
+  el('aboutBtn').addEventListener('click', showAbout);
+  el('clearCacheBtn').addEventListener('click', clearCache);
+  el('openDocsBtn').addEventListener('click', ()=> window.open('https://open-meteo.com/','_blank'));
+  el('logArea').innerHTML = '<div class="small">操作日志会显示在这里。</div>';
+  // 如果有上次结果，显示简短信息
+  const lw = localStorage.getItem('last_weather');
+  if(lw){ try{ const j = JSON.parse(lw); el('lastWeather').textContent = j.label; }catch(e){} }
+});
+
+/* 全局错误日志 */
+window.addEventListener('unhandledrejection', e => { log('未处理的 Promise 错误: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)); });
+window.addEventListener('error', e => { log('脚本错误: ' + e.message); });
+</script>
 </body>
 </html>
