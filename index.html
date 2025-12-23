@@ -194,7 +194,10 @@ async function loadCurrencyList(){
   if(cached){ populateCurrencySelects(cached); return; }
   try{
     // exchangerate.host 支持 /symbols
-    const res = await fetch('https://api.exchangerate.host/symbols');
+    const apiUrl = `https://api.exchangerate.host/latest?base=${base}&symbols=${target}`;
+    const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
+    const res = await fetch(proxyUrl, { method: 'GET' });
+    if (!res.ok) throw new Error('代理请求失败 ' + res.status);
     const j = await res.json();
     const symbols = j && j.symbols ? Object.keys(j.symbols).sort() : ['USD','EUR','JPY','CNY','GBP'];
     CACHE.set(CURRENCY_LIST_KEY, symbols, 24*3600);
@@ -217,18 +220,16 @@ function populateCurrencySelects(list){
 
 /* 查询实时汇率并转换 */
 async function fetchRateAndConvert(base, target, amount=1){
-  const cacheKey = `rate_${base}_${target}`;
-  const cached = CACHE.get(cacheKey);
-  if(cached) { log(`使用缓存汇率 ${base}->${target}`); return {rate:cached.rate, date:cached.date, source:'cache'}; }
-  const url = `https://api.exchangerate.host/latest?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(target)}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('汇率接口返回错误 ' + res.status);
+  const apiUrl = `https://api.exchangerate.host/latest?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(target)}`;
+  const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
+  const res = await fetch(proxyUrl, { method: 'GET' });
+  if(!res.ok) throw new Error('代理请求失败 ' + res.status);
   const j = await res.json();
   const rate = j.rates && j.rates[target] ? j.rates[target] : null;
-  if(rate==null) throw new Error('未找到汇率');
-  CACHE.set(cacheKey, {rate, date:j.date}, 60); // 缓存 60s
-  return {rate, date:j.date, source:'api'};
+  if(rate == null) throw new Error('未找到汇率');
+  return { rate, date: j.date, source: 'proxy' };
 }
+
 
 /* 历史汇率（过去 N 天） */
 async function fetchHistoricalRates(base, target, days=30){
@@ -245,29 +246,29 @@ async function fetchHistoricalRates(base, target, days=30){
 /* =================== 天气模块 =================== */
 /* 地理编码（Nominatim） */
 async function geocodePlace(q){
-  const cacheKey = 'geo_'+q;
-  const cached = CACHE.get(cacheKey);
-  if(cached) return cached;
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
-  const res = await fetch(url, {headers:{'User-Agent':'Sun-Toolbox/1.0 (contact)' }});
-  if(!res.ok) throw new Error('地理编码失败');
+  const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
+  const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
+  const res = await fetch(proxyUrl, { method: 'GET' });
+  if(!res.ok) throw new Error('代理请求失败 ' + res.status);
   const j = await res.json();
-  if(!j || j.length===0) throw new Error('未找到地点');
-  CACHE.set(cacheKey, j, 3600);
+  if(!j || j.length === 0) throw new Error('未找到地点');
   return j;
 }
 
+
+
 /* 获取当前天气（Open-Meteo） */
 async function fetchWeather(lat, lon, units='metric'){
-  // Open-Meteo current_weather; units: metric or imperial mapping
   const tempUnit = units === 'imperial' ? 'fahrenheit' : 'celsius';
   const windUnit = units === 'imperial' ? 'mph' : 'ms';
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto&temperature_unit=${tempUnit}&windspeed_unit=${windUnit}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&forecast_days=7`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('天气接口错误');
+  const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current_weather=true&timezone=auto&temperature_unit=${tempUnit}&windspeed_unit=${windUnit}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&forecast_days=7`;
+  const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
+  const res = await fetch(proxyUrl);
+  if(!res.ok) throw new Error('代理请求失败 ' + res.status);
   const j = await res.json();
   return j;
 }
+
 
 /* =================== 事件与 UI 逻辑 =================== */
 async function onConvert(){
@@ -437,6 +438,19 @@ function renderInitialState(){
 /* =================== 备用：错误处理全局 =================== */
 window.addEventListener('unhandledrejection', e => { log('未处理的 Promise 错误: ' + (e.reason && e.reason.message ? e.reason.message : e.reason)); });
 window.addEventListener('error', e => { log('脚本错误: ' + e.message); });
+const apiUrl = 'https://example.com/endpoint';
+const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
+const res = await fetch(proxyUrl, {
+  method: 'POST',
+  headers: {'Content-Type':'application/json'},
+  body: JSON.stringify({foo:'bar'})
+});
+function fetchWithTimeout(url, opts={}, timeout=10000){
+  return Promise.race([
+    fetch(url, opts),
+    new Promise((_, rej) => setTimeout(()=> rej(new Error('请求超时')), timeout))
+  ]);
+}
 
 </script>
 </body>
