@@ -172,12 +172,7 @@ async function geocodePlace(q){
   const key = 'geo_'+q;
   const cached = CACHE.get(key);
   if(cached) return cached;
-  const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
-  const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
-  const res = await fetchWithTimeout(proxyUrl, {}, 12000);
-  if(!res.ok) throw new Error('地理编码代理失败 ' + res.status);
-  const j = await res.json();
-  if(!j || j.length===0) throw new Error('未找到地点');
+const apiUrl = `https://api.exchangerate.host/latest?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(target)}`; const proxyUrl = 'https://<your-worker>.workers.dev/proxy?url=' + encodeURIComponent(apiUrl); const res = await fetch(proxyUrl, { method: 'GET' }); if (!res.ok) throw new Error('代理请求失败 ' + res.status); const j = await res.json();
   CACHE.set(key, j, 3600);
   return j;
 }
@@ -186,13 +181,7 @@ async function geocodePlace(q){
 async function fetchWeather(lat, lon, units='metric'){
   const tempUnit = units === 'imperial' ? 'fahrenheit' : 'celsius';
   const windUnit = units === 'imperial' ? 'mph' : 'ms';
-  const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&current_weather=true&timezone=auto&temperature_unit=${tempUnit}&windspeed_unit=${windUnit}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&forecast_days=7`;
-  const proxyUrl = '/proxy?url=' + encodeURIComponent(apiUrl);
-  const cached = CACHE.get(`weather_${lat}_${lon}_${units}`);
-  if(cached){ log('使用缓存天气'); return cached; }
-  const res = await fetchWithTimeout(proxyUrl, {}, 12000);
-  if(!res.ok) throw new Error('天气代理失败 ' + res.status);
-  const j = await res.json();
+const apiUrl = `https://api.exchangerate.host/latest?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(target)}`; const proxyUrl = 'https://<your-worker>.workers.dev/proxy?url=' + encodeURIComponent(apiUrl); const res = await fetch(proxyUrl, { method: 'GET' }); if (!res.ok) throw new Error('代理请求失败 ' + res.status); const j = await res.json();
   CACHE.set(`weather_${lat}_${lon}_${units}`, j, 300);
   return j;
 }
