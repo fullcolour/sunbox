@@ -3,194 +3,243 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>iTools | 太阳天气与汇率</title>
+    <title>GlobalHub | 深度气象与金融终端</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-        :root {
-            --apple-blue: #0071e3;
-            --glass: rgba(255, 255, 255, 0.72);
-        }
-
+        :root { --apple-blue: #0071e3; --glass: rgba(255, 255, 255, 0.75); }
         body {
-            background: #f5f5f7;
-            background-image: radial-gradient(at 0% 0%, rgba(94, 234, 212, 0.15) 0px, transparent 50%),
-                              radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.15) 0px, transparent 50%);
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", sans-serif;
-            min-height: 100vh;
+            background: #f2f2f7;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
             color: #1d1d1f;
         }
-
         .apple-glass {
             background: var(--glass);
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
             border: 1px solid rgba(255, 255, 255, 0.4);
             border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
         }
-
-        .input-field {
-            background: rgba(0, 0, 0, 0.04);
-            border: 1px solid transparent;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .currency-pill {
+            transition: all 0.2s;
+            border: 1px solid rgba(0,0,0,0.1);
         }
-
-        .input-field:focus {
-            background: white;
-            border-color: var(--apple-blue);
-            box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
-            outline: none;
-        }
-
-        .btn-apple {
+        .currency-pill.active {
             background: var(--apple-blue);
             color: white;
-            font-weight: 600;
-            transition: all 0.2s;
+            border-color: var(--apple-blue);
         }
-
-        .btn-apple:active {
-            transform: scale(0.97);
-            opacity: 0.9;
+        .weather-day-card {
+            min-width: 85px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 16px;
+            padding: 12px 8px;
+            text-align: center;
         }
-
-        /* 隐藏 Chrome 自动填充背景 */
-        input:-webkit-autofill {
-            -webkit-box-shadow: 0 0 0px 1000px white inset;
-        }
+        .history-tag { background: #ff9500; color: white; font-size: 10px; padding: 2px 4px; border-radius: 4px; position: absolute; top: -8px; }
     </style>
 </head>
-<body class="flex items-center justify-center p-6">
+<body class="p-4 md:p-8 lg:p-12">
 
-    <div class="w-full max-w-4xl space-y-6">
+    <div class="max-w-6xl mx-auto space-y-8">
         
-        <header class="text-center mb-10 animate__animated animate__fadeIn">
-            <h1 class="text-3xl font-semibold tracking-tight">太阳天气与汇率查询>
-            <p class="text-gray-500 text-sm mt-1">实时数据 · 极简交互</p>
+        <header class="flex flex-col md:flex-row justify-between items-end mb-8 animate__animated animate__fadeIn">
+            <div>
+                <h1 class="text-4xl font-bold tracking-tight">太阳天气与汇率>太阳>>
+                <p class="text-gray-500 font-medium">实时数据，极速查询>sp>
+            </div>
+            <div id="current-time" class="text-sm font-mono text-gray-400 mt-2 md:mt-0"></div>
         </header>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
-            <section class="apple-glass p-8 animate__animated animate__fadeInLeft">
-                <div class="flex items-center mb-6">
-                    <div class="p-2 bg-green-100 rounded-lg mr-3">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <h2 class="text-xl font-bold">汇率转换</h2>
-                </div>
-
+            <section class="apple-glass p-8 flex flex-col space-y-6 animate__animated animate__fadeInLeft">
+                <h2 class="text-xl font-bold flex items-center">💵 汇率转换器</h2>
+                
                 <div class="space-y-4">
                     <div>
-                        <span class="text-xs font-bold text-gray-400 ml-1">数值</span>
-                        <input id="amount" type="number" value="100" class="input-field w-full p-4 rounded-xl text-lg font-medium">
+                        <span class="text-xs font-bold text-gray-400 block mb-2">换算金额</span>
+                        <input id="amount" type="number" value="100" class="w-full p-4 rounded-xl bg-gray-100/50 border-none outline-none focus:ring-2 ring-blue-500 text-2xl font-bold">
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="flex-1">
-                            <span class="text-xs font-bold text-gray-400 ml-1">从</span>
-                            <input id="fromCurrency" type="text" value="USD" class="input-field w-full p-4 rounded-xl text-center font-bold uppercase">
-                        </div>
-                        <div class="mt-4 text-gray-300">➜</div>
-                        <div class="flex-1">
-                            <span class="text-xs font-bold text-gray-400 ml-1">至</span>
-                            <input id="toCurrency" type="text" value="CNY" class="input-field w-full p-4 rounded-xl text-center font-bold uppercase">
-                        </div>
+
+                    <div class="space-y-3">
+                        <span class="text-xs font-bold text-gray-400 block">基础货币 (From)</span>
+                        <div id="from-list" class="flex flex-wrap gap-2">
+                            </div>
                     </div>
-                    <button onclick="convertCurrency()" class="btn-apple w-full py-4 rounded-xl mt-2">计算</button>
+
+                    <div class="space-y-3">
+                        <span class="text-xs font-bold text-gray-400 block">目标货币 (To)</span>
+                        <div id="to-list" class="flex flex-wrap gap-2">
+                            </div>
+                    </div>
+
+                    <button onclick="updateExchange()" class="w-full bg-[#0071e3] text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-500/20 active:scale-95 transition-all">执行换算</button>
                     
-                    <div id="exchangeResult" class="mt-6 text-center py-4 bg-white/50 rounded-2xl hidden">
-                        <p class="text-sm text-gray-400">换算结果</p>
-                        <p id="exchangeValue" class="text-3xl font-bold text-blue-600 tracking-tighter">--</p>
+                    <div id="rate-display" class="bg-white/60 p-6 rounded-2xl text-center hidden animate__animated animate__fadeInUp">
+                        <p class="text-sm text-gray-400 mb-1" id="rate-info">--</p>
+                        <p class="text-4xl font-black text-blue-600 tracking-tighter" id="rate-result">0.00</p>
                     </div>
                 </div>
             </section>
 
-            <section class="apple-glass p-8 animate__animated animate__fadeInRight">
-                <div class="flex items-center mb-6">
-                    <div class="p-2 bg-blue-100 rounded-lg mr-3">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+            <section class="lg:col-span-2 apple-glass p-8 space-y-8 animate__animated animate__fadeInRight">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <h2 class="text-xl font-bold flex items-center">🌤️ 21天深度气象轨迹</h2>
+                    <div class="flex w-full md:w-auto gap-2">
+                        <input id="city-input" type="text" placeholder="城市(如: Tokyo)" class="flex-1 md:w-48 p-3 rounded-xl bg-gray-100/50 border-none outline-none focus:ring-2 ring-blue-500">
+                        <button onclick="fetchWeather()" class="bg-black text-white px-6 py-3 rounded-xl font-bold active:scale-95 transition-all">查询</button>
                     </div>
-                    <h2 class="text-xl font-bold">全球天气</h2>
+                </div>
+
+                <div id="weather-now" class="grid grid-cols-2 md:grid-cols-4 gap-4 hidden">
+                    <div class="bg-blue-500 text-white p-6 rounded-3xl col-span-2 flex flex-col justify-between">
+                        <p id="now-city" class="text-xl font-bold uppercase tracking-widest">---</p>
+                        <p id="now-temp" class="text-6xl font-black my-4 tracking-tighter">--°</p>
+                        <p class="text-sm opacity-80">当前实况气温</p>
+                    </div>
+                    <div class="bg-white/40 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+                        <span class="text-xs font-bold text-gray-400">风速</span>
+                        <p id="now-wind" class="text-xl font-bold mt-1">-- km/h</p>
+                    </div>
+                    <div class="bg-white/40 p-4 rounded-2xl flex flex-col justify-center items-center text-center">
+                        <span class="text-xs font-bold text-gray-400">风向度数</span>
+                        <p id="now-dir" class="text-xl font-bold mt-1">--°</p>
+                    </div>
                 </div>
 
                 <div class="space-y-4">
-                    <div>
-                        <span class="text-xs font-bold text-gray-400 ml-1">城市名称</span>
-                        <input id="cityInput" type="text" placeholder="例如: Beijing" class="input-field w-full p-4 rounded-xl text-lg font-medium">
+                    <div class="flex justify-between items-center px-1">
+                        <span class="text-sm font-bold text-gray-400 uppercase tracking-widest">历史与预测序列 (前10天 - 后10天)</span>
+                        <span class="text-xs text-blue-500">横向滚动查看 →</span>
                     </div>
-                    <button onclick="fetchWeather()" class="btn-apple w-full py-4 rounded-xl mt-2">获取报告</button>
-
-                    <div id="weatherResult" class="mt-6 hidden animate__animated animate__fadeIn">
-                        <div class="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl text-white text-center">
-                            <p id="weatherCity" class="text-lg font-semibold opacity-80">--</p>
-                            <p id="weatherTemp" class="text-5xl font-bold my-2 tracking-tighter">--°C</p>
-                            <p id="weatherInfo" class="text-sm font-medium">实时数据更新</p>
-                        </div>
+                    <div id="timeline" class="flex gap-4 overflow-x-auto pb-4 hide-scroll h-32">
+                        <div class="w-full text-center text-gray-300 py-8">输入城市名以加载气象时间轴数据</div>
                     </div>
                 </div>
             </section>
-
         </div>
-
-        <footer class="text-center pt-8">
-            <p class="text-xs text-gray-400">数据源: Open-Meteo & ExchangeRate-API | 免登录免费服务</p>
-        </footer>
     </div>
 
     <script>
-        // 汇率换算逻辑
-        async function convertCurrency() {
-            const amount = document.getElementById('amount').value;
-            const from = document.getElementById('fromCurrency').value.toUpperCase();
-            const to = document.getElementById('toCurrency').value.toUpperCase();
-            const resBox = document.getElementById('exchangeResult');
-            const resVal = document.getElementById('exchangeValue');
+        const currencies = [
+            {code: 'CNY', name: '人民币'}, {code: 'USD', name: '美元'},
+            {code: 'JPY', name: '日元'}, {code: 'EUR', name: '欧元'},
+            {code: 'THB', name: '泰铢'}, {code: 'AUD', name: '澳元'},
+            {code: 'CAD', name: '加币'}, {code: 'GBP', name: '英镑'}
+        ];
 
-            try {
-                const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
-                const data = await response.json();
-                const rate = data.rates[to];
-                const final = (amount * rate).toFixed(2);
-                
-                resVal.innerText = `${final} ${to}`;
-                resBox.classList.remove('hidden');
-                resBox.classList.add('animate__fadeInUp');
-            } catch (error) {
-                alert("汇率获取失败，请检查货币代码是否正确。");
+        let fromCur = 'USD', toCur = 'CNY';
+
+        // 初始化汇率列表
+        function initCurrencies() {
+            const fList = document.getElementById('from-list');
+            const tList = document.getElementById('to-list');
+            currencies.forEach(c => {
+                fList.innerHTML += `<button onclick="setCur('from','${c.code}')" id="from-${c.code}" class="currency-pill px-4 py-2 rounded-full text-sm font-medium ${c.code==='USD'?'active':''}">${c.code}</button>`;
+                tList.innerHTML += `<button onclick="setCur('to','${c.code}')" id="to-${c.code}" class="currency-pill px-4 py-2 rounded-full text-sm font-medium ${c.code==='CNY'?'active':''}">${c.code}</button>`;
+            });
+        }
+
+        function setCur(type, code) {
+            if(type === 'from') {
+                document.querySelectorAll('#from-list button').forEach(b => b.classList.remove('active'));
+                document.getElementById(`from-${code}`).classList.add('active');
+                fromCur = code;
+            } else {
+                document.querySelectorAll('#to-list button').forEach(b => b.classList.remove('active'));
+                document.getElementById(`to-${code}`).classList.add('active');
+                toCur = code;
             }
         }
 
-        // 天气查询逻辑
-        async function fetchWeather() {
-            const city = document.getElementById('cityInput').value;
-            const resBox = document.getElementById('weatherResult');
-            const resCity = document.getElementById('weatherCity');
-            const resTemp = document.getElementById('weatherTemp');
+        async function updateExchange() {
+            const amount = document.getElementById('amount').value;
+            const resBox = document.getElementById('rate-display');
+            try {
+                const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCur}`);
+                const data = await res.json();
+                const rate = data.rates[toCur];
+                document.getElementById('rate-result').innerText = (amount * rate).toLocaleString(undefined, {minimumFractionDigits: 2});
+                document.getElementById('rate-info').innerText = `1 ${fromCur} ≈ ${rate.toFixed(4)} ${toCur}`;
+                resBox.classList.remove('hidden');
+            } catch(e) { alert("汇率服务暂时不可用"); }
+        }
 
-            if (!city) return alert("请输入城市名称");
+        async function fetchWeather() {
+            const city = document.getElementById('city-input').value;
+            const timeline = document.getElementById('timeline');
+            if(!city) return;
 
             try {
-                // 1. 地理编码转换（城市名转经纬度）
-                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=zh`);
+                // 1. 地理定位
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`);
                 const geoData = await geoRes.json();
-                
-                if (!geoData.results) throw new Error("未找到城市");
-                
+                if(!geoData.results) throw new Error();
                 const { latitude, longitude, name } = geoData.results[0];
 
-                // 2. 获取天气数据
-                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-                const weatherData = await weatherRes.json();
+                // 2. 计算日期跨度 (前10天 到 后10天)
+                const today = new Date();
+                const startDate = new Date(today); startDate.setDate(today.getDate() - 10);
+                const endDate = new Date(today); endDate.setDate(today.getDate() + 10);
                 
-                resCity.innerText = name;
-                resTemp.innerText = `${weatherData.current_weather.temperature}°C`;
+                const fmtDate = (d) => d.toISOString().split('T')[0];
+
+                // 3. 并发获取历史与预测数据
+                const [histRes, foreRes] = await Promise.all([
+                    fetch(`https://archive-api.open-meteo.com/v1/archive?latitude=${latitude}&longitude=${longitude}&start_date=${fmtDate(startDate)}&end_date=${fmtDate(new Date(today.getTime()-86400000))}&daily=temperature_2m_max`),
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&daily=temperature_2m_max&timezone=auto`)
+                ]);
+
+                const histData = await histRes.json();
+                const foreData = await foreRes.json();
+
+                // 渲染实况
+                document.getElementById('weather-now').classList.remove('hidden');
+                document.getElementById('now-city').innerText = name;
+                document.getElementById('now-temp').innerText = Math.round(foreData.current_weather.temperature) + '°';
+                document.getElementById('now-wind').innerText = foreData.current_weather.windspeed + ' km/h';
+                document.getElementById('now-dir').innerText = foreData.current_weather.winddirection + '°';
+
+                // 合并时间轴
+                timeline.innerHTML = '';
                 
-                resBox.classList.remove('hidden');
-                resBox.classList.add('animate__fadeInUp');
-            } catch (error) {
-                alert("天气获取失败，请输入正确的城市名称。");
-            }
+                // 历史数据部分
+                histData.daily.time.forEach((t, i) => {
+                    const day = t.split('-').slice(1).join('/');
+                    timeline.innerHTML += `
+                        <div class="weather-day-card relative opacity-60">
+                            <span class="history-tag">历史</span>
+                            <p class="text-[10px] font-bold text-gray-400 mb-1">${day}</p>
+                            <p class="text-lg font-black">${Math.round(histData.daily.temperature_2m_max[i])}°</p>
+                        </div>`;
+                });
+
+                // 预测数据部分 (含今日)
+                foreData.daily.time.forEach((t, i) => {
+                    const isToday = i === 0;
+                    const day = t.split('-').slice(1).join('/');
+                    timeline.innerHTML += `
+                        <div class="weather-day-card ${isToday?'ring-2 ring-blue-500 bg-white shadow-sm':''}">
+                            <p class="text-[10px] font-bold ${isToday?'text-blue-500':'text-gray-400'} mb-1">${isToday?'今日':day}</p>
+                            <p class="text-lg font-black">${Math.round(foreData.daily.temperature_2m_max[i])}°</p>
+                        </div>`;
+                });
+
+                // 滚动到今日位置 (中间)
+                setTimeout(() => timeline.scrollTo({left: 85 * 9, behavior: 'smooth'}), 500);
+
+            } catch(e) { alert("找不到该城市或气象站连接失败"); }
         }
+
+        // 时间更新
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('current-time').innerText = now.toLocaleString();
+        }, 1000);
+
+        window.onload = () => { initCurrencies(); updateExchange(); };
     </script>
 </body>
 </html>
