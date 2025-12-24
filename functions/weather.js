@@ -1,53 +1,30 @@
-export async function onRequest(context) {
-  const url = new URL(context.request.url);
+export default {
+  async fetch(request) {
+    const url = new URL(request.url);
 
-  const lat = url.searchParams.get("lat");
-  const lon = url.searchParams.get("lon");
-  const lang = url.searchParams.get("lang") || "en";
+    if (url.pathname !== "/proxy") {
+      return new Response("Not Found", { status: 404 });
+    }
 
-  if (!lat || !lon) {
-    return new Response(
-      JSON.stringify({ error: "Missing lat or lon" }),
-      {
-        status: 400,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      }
-    );
-  }
+    const target = url.searchParams.get("url");
+    if (!target) {
+      return new Response("Missing url", { status: 400 });
+    }
 
-  const api =
-    `https://api.open-meteo.com/v1/forecast` +
-    `?latitude=${lat}` +
-    `&longitude=${lon}` +
-    `&current=temperature_2m,weathercode,wind_speed_10m` +
-    `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum` +
-    `&timezone=auto` +
-    `&language=${lang}`;
+    const res = await fetch(target, {
+      headers: {
+        "User-Agent": "AppleWeatherPro/1.0",
+        "Accept": "application/json",
+      },
+    });
 
-  try {
-    const res = await fetch(api);
-    const data = await res.json();
-
-    return new Response(JSON.stringify(data), {
+    return new Response(res.body, {
+      status: res.status,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "public, max-age=600"
-      }
+        "Cache-Control": "public, max-age=300",
+      },
     });
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Failed to fetch weather" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*"
-        }
-      }
-    );
-  }
-}
+  },
+};
