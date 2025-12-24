@@ -7,10 +7,9 @@
 
 <style>
 body {
-  
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont;
-  background: linear-gradient(#0a1d37, #071426);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display";
+  background: linear-gradient(180deg, #0a1d37, #071426);
   color: #fff;
 }
 .container {
@@ -18,44 +17,116 @@ body {
   margin: 0 auto;
   padding: 16px;
 }
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.sun {
+  width: 36px;
+  height: 36px;
+  animation: spin 18s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+h1 {
+  font-size: 20px;
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Inputs */
 input, button {
   width: 100%;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: 14px;
   border: none;
   margin-bottom: 10px;
+  font-size: 15px;
+}
+input {
+  background: rgba(255,255,255,0.12);
+  color: white;
 }
 button {
   background: #4f7cff;
   color: white;
   font-weight: 600;
 }
+
+/* Cards */
 .card {
-  background: rgba(255,255,255,0.1);
-  border-radius: 16px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 18px;
   padding: 16px;
   margin-top: 12px;
+  backdrop-filter: blur(12px);
+  animation: fadeIn .4s ease;
 }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.big {
+  font-size: 36px;
+  font-weight: 600;
+}
+.small {
+  opacity: .75;
+  font-size: 12px;
+}
+
+/* Forecast */
 .forecast {
   display: flex;
   overflow-x: auto;
-  gap: 10px;
+  gap: 12px;
+  margin-top: 12px;
+  padding-bottom: 6px;
 }
 .day {
   min-width: 120px;
-  background: rgba(255,255,255,0.12);
-  border-radius: 14px;
-  padding: 10px;
+  background: rgba(255,255,255,0.14);
+  border-radius: 16px;
+  padding: 12px;
   text-align: center;
 }
-.small { opacity: 0.7; font-size: 12px; }
-.big { font-size: 32px; font-weight: 600; }
+.icon {
+  font-size: 22px;
+  margin: 6px 0;
+}
 </style>
 </head>
 
 <body>
 <div class="container">
 
+  <!-- Header -->
+  <div class="header">
+    <!-- Animated Sun -->
+    <svg class="sun" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="18" fill="#FFD93B"/>
+      <g stroke="#FFD93B" stroke-width="4">
+        <line x1="50" y1="2" x2="50" y2="18"/>
+        <line x1="50" y1="82" x2="50" y2="98"/>
+        <line x1="2" y1="50" x2="18" y2="50"/>
+        <line x1="82" y1="50" x2="98" y2="50"/>
+        <line x1="15" y1="15" x2="26" y2="26"/>
+        <line x1="74" y1="74" x2="85" y2="85"/>
+        <line x1="15" y1="85" x2="26" y2="74"/>
+        <line x1="74" y1="26" x2="85" y2="15"/>
+      </g>
+    </svg>
+    <h1>Apple Weather Pro</h1>
+  </div>
+
+  <!-- Search -->
   <input id="q" placeholder="城市 / City / 都市" />
   <button onclick="search()">搜索 / Search</button>
 
@@ -64,56 +135,74 @@ button {
 </div>
 
 <script>
+/* ======================
+   Config
+====================== */
 const PROXY = '/proxy';
 
+/* WMO Weather Mapping */
 const WMO = {
   0: "☀️ Clear",
   1: "🌤️ Mostly Clear",
   2: "⛅ Partly Cloudy",
   3: "☁️ Cloudy",
   45: "🌫️ Fog",
+  48: "🌫️ Fog",
+  51: "🌦️ Drizzle",
   61: "🌧️ Rain",
+  63: "🌧️ Heavy Rain",
   71: "❄️ Snow",
+  73: "❄️ Heavy Snow",
   95: "⛈️ Storm"
 };
 
+/* ======================
+   Helpers
+====================== */
 async function proxyFetch(url) {
   const res = await fetch(`${PROXY}?url=${encodeURIComponent(url)}`);
+  if (!res.ok) throw new Error('Proxy error');
   return res.json();
 }
 
+/* Geocoding */
 async function geocode(q) {
   return proxyFetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`
+    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`
   );
 }
 
+/* Weather */
 async function weather(lat, lon) {
   return proxyFetch(
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${lat}&longitude=${lon}` +
     `&current_weather=true` +
     `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode` +
+    `&forecast_days=7` +
     `&timezone=auto`
   );
 }
 
+/* ======================
+   Main Logic
+====================== */
 async function search() {
-  const q = document.getElementById('q').value;
+  const q = document.getElementById('q').value.trim();
   if (!q) return;
 
-  document.getElementById('result').innerHTML = 'Loading...';
+  document.getElementById('result').innerHTML = 'Loading…';
 
   try {
     const geo = await geocode(q);
     const w = await weather(geo[0].lat, geo[0].lon);
-
     render(w, geo[0].display_name);
   } catch (e) {
-    document.getElementById('result').innerHTML = 'Error';
+    document.getElementById('result').innerHTML = 'Error loading data';
   }
 }
 
+/* Render */
 function render(data, city) {
   const c = data.current_weather;
   const d = data.daily;
@@ -122,8 +211,10 @@ function render(data, city) {
     <div class="card">
       <div class="small">${city}</div>
       <div class="big">${c.temperature}°C</div>
-      <div>${WMO[c.weathercode] || ''}</div>
-      <div class="small">Wind ${c.windspeed} km/h</div>
+      <div class="icon">${WMO[c.weathercode] || ''}</div>
+      <div class="small">
+        Wind ${c.windspeed} km/h
+      </div>
     </div>
 
     <div class="forecast">
@@ -133,17 +224,28 @@ function render(data, city) {
     html += `
       <div class="day">
         <div class="small">${d.time[i]}</div>
-        <div>${WMO[d.weathercode[i]] || ''}</div>
+        <div class="icon">${WMO[d.weathercode[i]] || ''}</div>
         <div>${d.temperature_2m_max[i]}° / ${d.temperature_2m_min[i]}°</div>
-        <div class="small">Rain ${d.precipitation_sum[i]}mm</div>
+        <div class="small">Rain ${d.precipitation_sum[i]} mm</div>
+        <div class="small">Wind ${d.windspeed_10m_max[i]} km/h</div>
       </div>
     `;
   }
 
   html += `</div>`;
-
   document.getElementById('result').innerHTML = html;
 }
+
+/* ======================
+   Auto IP Locate
+====================== */
+(async () => {
+  try {
+    const loc = await proxyFetch('https://ipapi.co/json/');
+    document.getElementById('q').value = loc.city;
+    search();
+  } catch {}
+})();
 </script>
 </body>
 </html>
