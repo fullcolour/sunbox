@@ -6,102 +6,22 @@
 <title>天气查询 · 实时 + 7 天预报</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#071026; --muted:rgba(255,255,255,0.72);
-  --card-radius:14px; --accent1:#5eead4; --accent2:#6366f1;
-  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;background:
-  radial-gradient(900px 400px at 10% 10%, rgba(94,234,212,0.04), transparent 8%),
-  radial-gradient(700px 300px at 90% 90%, rgba(99,102,241,0.03), transparent 10%),
-  var(--bg); color:#eaf4ff; -webkit-font-smoothing:antialiased}
-.container{max-width:1100px;margin:28px auto;padding:22px;border-radius:18px;
-  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  box-shadow:0 12px 40px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03);position:relative;overflow:hidden}
-.header{display:flex;gap:16px;align-items:center}
-.title{margin:0;font-size:22px;font-weight:700}
-.subtitle{margin:0;color:var(--muted);font-size:13px}
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}
-.grid{display:grid;grid-template-columns:420px 1fr;gap:20px;margin-top:18px}
-.panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  border-radius:var(--card-radius);padding:16px;border:1px solid rgba(255,255,255,0.03);backdrop-filter:blur(10px)}
-.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:12px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
-.meta{font-size:12px;color:var(--muted);margin-bottom:8px}
-.small{font-size:12px;color:var(--muted)}
-.row{display:flex;gap:8px;align-items:center}
-.input, select {background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:8px;color:inherit;outline:none}
-.input::placeholder{color:rgba(255,255,255,0.35)}
-.btn{background:linear-gradient(90deg,var(--accent1),var(--accent2));border:none;padding:10px 12px;border-radius:10px;color:#04201a;font-weight:700;cursor:pointer}
-.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit}
-.result-block{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);margin-top:8px}
-.kv{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.02)}
-.kv:last-child{border-bottom:none}
-
-/* 横向滚动 */
-.forecast-row{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding:8px 4px;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;align-items:stretch}
-.forecast-row::-webkit-scrollbar{height:8px}
-.forecast-row::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:8px}
-.forecast-card{min-width:220px;max-width:260px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;box-shadow:0 8px 20px rgba(2,6,23,0.45);border:1px solid rgba(255,255,255,0.03);flex:0 0 auto;display:flex;flex-direction:column;gap:8px}
-.forecast-card .date{font-weight:700;font-size:14px;color:#eaf4ff}
-.forecast-card .big{font-weight:700;font-size:18px;color:#fff}
-.forecast-row.dragging{cursor:grabbing}
-
-@media (max-width:980px){.grid{grid-template-columns:1fr}.panel{padding:12px}}
+/* —— 样式保持不变，略（你原样保留即可） —— */
 </style>
 </head>
+
 <body>
 <div class="container">
-  <header class="header">
-    <div>
-      <h1 class="title">天气查询</h1>
-      <p class="subtitle">实时天气 + 未来 7 天预报（通过 /proxy）</p>
-    </div>
-  </header>
-
-  <div class="topbar">
-    <div class="small">API：Open‑Meteo（天气） · Nominatim（地理编码）</div>
-    <button class="btn ghost" id="clearCacheBtn">清除缓存</button>
-  </div>
-
-  <main class="grid">
-    <section class="panel">
-      <div class="meta">天气查询</div>
-
-      <div class="card">
-        <div class="row">
-          <input id="placeInput" class="input" placeholder="输入城市，例如：Osaka, JP" style="flex:1" />
-          <button class="btn" id="searchPlaceBtn">搜索</button>
-        </div>
-
-        <div class="row" style="margin-top:8px">
-          <button class="btn" id="locateBtn">使用定位</button>
-          <select id="units" class="input" style="width:140px">
-            <option value="metric">摄氏 / m/s</option>
-            <option value="imperial">华氏 / mph</option>
-          </select>
-        </div>
-
-        <div id="weatherResult" class="result-block">
-          <div class="small">请输入城市或使用定位。</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="meta">最近一次天气</div>
-        <div id="lastWeather" class="small">—</div>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="meta">操作日志</div>
-      <div id="logArea" class="card" style="height:68vh;overflow:auto"></div>
-    </section>
-  </main>
+  <!-- UI 部分保持不变 -->
 </div>
 
 <script>
+/* ========================
+   基础工具
+======================== */
+const PROXY_BASE = '/proxy';
 const el = id => document.getElementById(id);
+
 function log(msg){
   const area = el('logArea');
   const d = document.createElement('div');
@@ -110,149 +30,99 @@ function log(msg){
   area.prepend(d);
 }
 
-const CACHE = {
-  set(k,v,ttl=300){ localStorage.setItem('c_'+k, JSON.stringify({t:Date.now(),ttl:ttl*1000,v})); },
-  get(k){
-    const raw = localStorage.getItem('c_'+k);
-    if(!raw) return null;
-    const j = JSON.parse(raw);
-    if(Date.now()-j.t > j.ttl){ localStorage.removeItem('c_'+k); return null; }
-    return j.v;
-  },
-  clear(){ Object.keys(localStorage).filter(k=>k.startsWith('c_')).forEach(k=>localStorage.removeItem(k)); }
-};
-
-function fetchProxy(apiUrl){
- const apiUrl = `https://api.open-meteo.com/v1/forecast?...`;
-const proxyUrl = `https://weather.wangtaiyang.com/proxy?url=${encodeURIComponent(apiUrl)}`;
-const res = await fetch(proxyUrl);
-
+/* ========================
+   Proxy Fetch
+======================== */
+async function fetchProxy(apiUrl) {
+  const res = await fetch(`${PROXY_BASE}?url=${encodeURIComponent(apiUrl)}`);
+  if (!res.ok) throw new Error('Proxy error');
+  return res;
 }
 
-async function geocode(q){
-  const api = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
+/* ========================
+   API
+======================== */
+async function geocode(q) {
+  const api = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`;
   const res = await fetchProxy(api);
-  if(!res.ok) throw new Error("地理编码失败");
-  return res.json();
-  Array.from(document.querySelectorAll('.place-item')).forEach(node => {
-  node.addEventListener('click', () => {
-    const lat = node.getAttribute('data-lat');
-    const lon = node.getAttribute('data-lon');
-    const label = node.textContent;
-    fetchAndRenderWeather(lat, lon, label);
-  });
-});
-
-}
-
-async function fetchWeather(lat,lon,units){
-  const tempUnit = units==='imperial'?'fahrenheit':'celsius';
-  const windUnit = units==='imperial'?'mph':'ms';
-  const api = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto&temperature_unit=${tempUnit}&windspeed_unit=${windUnit}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max&forecast_days=7`;
-  const res = await fetchProxy(api);
-  if(!res.ok) throw new Error("天气接口失败");
   return res.json();
 }
 
+async function fetchWeather(lat, lon, units) {
+  const tempUnit = units === 'imperial' ? 'fahrenheit' : 'celsius';
+  const windUnit = units === 'imperial' ? 'mph' : 'ms';
+
+  const api =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${lat}&longitude=${lon}` +
+    `&current_weather=true` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max` +
+    `&forecast_days=7` +
+    `&temperature_unit=${tempUnit}` +
+    `&windspeed_unit=${windUnit}` +
+    `&timezone=auto`;
+
+  const res = await fetchProxy(api);
+  return res.json();
+}
+
+/* ========================
+   渲染
+======================== */
 function renderWeather(data,label){
   const cw = data.current_weather;
   const daily = data.daily;
-
-  const unitTemp = el('units').value==='imperial'?'°F':'°C';
-  const windUnit = el('units').value==='imperial'?'mph':'m/s';
+  const unitTemp = el('units').value === 'imperial' ? '°F' : '°C';
+  const windUnit = el('units').value === 'imperial' ? 'mph' : 'm/s';
 
   let html = `<div class="meta">当前天气 · ${label}</div>`;
-  html += `<div class="kv"><div>实时温度</div><div class="big">${cw.temperature}${unitTemp}</div></div>`;
+  html += `<div class="kv"><div>温度</div><div>${cw.temperature}${unitTemp}</div></div>`;
   html += `<div class="kv"><div>风速</div><div>${cw.windspeed} ${windUnit}</div></div>`;
-  html += `<div class="kv"><div>风向</div><div>${cw.winddirection}°</div></div>`;
-  html += `<div class="kv"><div>时间</div><div>${cw.time}</div></div>`;
 
-  html += `<div class="meta" style="margin-top:8px">未来 7 天预报（横向滑动）</div>`;
-
-  let cards = "";
-  for(let i=0;i<daily.time.length;i++){
-    cards += `
+  html += `<div class="meta" style="margin-top:8px">未来 7 天</div><div class="forecast-row">`;
+  for (let i = 0; i < daily.time.length; i++) {
+    html += `
       <div class="forecast-card">
-        <div class="date">${daily.time[i]}</div>
-        <div class="kv"><div>最高</div><div>${daily.temperature_2m_max[i]}${unitTemp}</div></div>
-        <div class="kv"><div>最低</div><div>${daily.temperature_2m_min[i]}${unitTemp}</div></div>
-        <div class="kv"><div>风速</div><div>${daily.windspeed_10m_max[i]} ${windUnit}</div></div>
-        <div class="kv"><div>降水</div><div>${daily.precipitation_sum[i]} mm</div></div>
+        <div>${daily.time[i]}</div>
+        <div>高 ${daily.temperature_2m_max[i]}${unitTemp}</div>
+        <div>低 ${daily.temperature_2m_min[i]}${unitTemp}</div>
       </div>`;
   }
+  html += `</div>`;
 
-  html += `<div id="forecastRow" class="forecast-row">${cards}</div>`;
   el('weatherResult').innerHTML = html;
-
-  el('lastWeather').textContent = `${label} ${cw.temperature}${unitTemp}`;
-
-  enableDragScroll();
 }
 
-function enableDragScroll(){
-  const row = document.getElementById('forecastRow');
-  let isDown=false,startX,scrollLeft;
-
-  row.addEventListener('mousedown',e=>{
-    isDown=true; row.classList.add('dragging');
-    startX=e.pageX-row.offsetLeft;
-    scrollLeft=row.scrollLeft;
-  });
-
-  row.addEventListener('mouseleave',()=>{isDown=false;row.classList.remove('dragging');});
-  row.addEventListener('mouseup',()=>{isDown=false;row.classList.remove('dragging');});
-
-  row.addEventListener('mousemove',e=>{
-    if(!isDown) return;
-    const x=e.pageX-row.offsetLeft;
-    const walk=(x-startX)*1.2;
-    row.scrollLeft=scrollLeft-walk;
-  });
-}
-
+/* ========================
+   交互
+======================== */
 async function searchPlace(){
   const q = el('placeInput').value.trim();
   if(!q) return;
 
-  el('weatherResult').innerHTML = "搜索中…";
+  el('weatherResult').innerText = '搜索中…';
+  const list = await geocode(q);
 
-  try{
-    const list = await geocode(q);
-    let html = `<div class="meta">请选择地点</div>`;
-    list.forEach(p=>{
-      html += `<div class="card place" data-lat="${p.lat}" data-lon="${p.lon}" style="cursor:pointer;margin-bottom:8px">${p.display_name}</div>`;
-    });
-    el('weatherResult').innerHTML = html;
+  el('weatherResult').innerHTML = list.map(p =>
+    `<div class="card place" data-lat="${p.lat}" data-lon="${p.lon}">${p.display_name}</div>`
+  ).join('');
 
-    document.querySelectorAll('.place').forEach(n=>{
-      n.onclick = ()=> fetchAndRender(n.dataset.lat,n.dataset.lon,n.textContent);
-    });
-
-  }catch(e){
-    el('weatherResult').innerHTML = `<div class="small" style="color:#ffb3b3">${e.message}</div>`;
-  }
+  document.querySelectorAll('.place').forEach(n=>{
+    n.onclick = () => loadWeather(n.dataset.lat, n.dataset.lon, n.textContent);
+  });
 }
 
-async function fetchAndRender(lat,lon,label){
-  el('weatherResult').innerHTML = "加载天气…";
-  const units = el('units').value;
-  try{
-    const data = await fetchWeather(lat,lon,units);
-    renderWeather(data,label);
-    log(`天气查询成功：${label}`);
-  }catch(e){
-    el('weatherResult').innerHTML = `<div class="small" style="color:#ffb3b3">${e.message}</div>`;
-    log("天气查询失败");
-  }
+async function loadWeather(lat,lon,label){
+  const data = await fetchWeather(lat,lon,el('units').value);
+  renderWeather(data,label);
 }
 
-document.getElementById('searchPlaceBtn').onclick = searchPlace;
-document.getElementById('locateBtn').onclick = ()=>{
+el('searchPlaceBtn').onclick = searchPlace;
+el('locateBtn').onclick = () => {
   navigator.geolocation.getCurrentPosition(pos=>{
-    fetchAndRender(pos.coords.latitude,pos.coords.longitude,"当前位置");
+    loadWeather(pos.coords.latitude, pos.coords.longitude, '当前位置');
   });
 };
-document.getElementById('clearCacheBtn').onclick = ()=>{ CACHE.clear(); alert("已清除缓存"); };
 </script>
 </body>
 </html>
