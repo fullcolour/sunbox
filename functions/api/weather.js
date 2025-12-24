@@ -1,30 +1,24 @@
 export async function onRequest(context) {
-  const { request } = context;
-  const url = new URL(request.url);
+  const url = new URL(context.request.url);
+  const target = url.searchParams.get("target");
 
-  const lat = url.searchParams.get("lat");
-  const lon = url.searchParams.get("lon");
-
-  if (!lat || !lon) {
-    return new Response(JSON.stringify({ error: "Missing lat/lon" }), {
+  if (!target) {
+    return new Response(JSON.stringify({ error: "Missing target" }), {
       status: 400,
       headers: { "Content-Type": "application/json" }
     });
   }
 
-  const apiUrl = `https://api.open-meteo.com/v1/forecast
-    ?latitude=${lat}
-    &longitude=${lon}
-    &current_weather=true
-    &daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_probability_max
-    &forecast_days=7
-    &timezone=auto
-  `.replace(/\s+/g, "");
+  const apiUrl = decodeURIComponent(target);
 
-  const res = await fetch(apiUrl);
-  const data = await res.json();
+  const res = await fetch(apiUrl, {
+    headers: {
+      "User-Agent": "Mozilla/5.0"
+    }
+  });
 
-  return new Response(JSON.stringify(data), {
+  return new Response(res.body, {
+    status: res.status,
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*"
