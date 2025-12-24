@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Weather</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont;
+  background: linear-gradient(180deg,#0b1530,#020617);
+  color: white;
+}
+
+.container {
+  max-width: 420px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.search {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+input {
+  flex: 1;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  font-size: 16px;
+}
+
+button {
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg,#5ac8fa,#5856d6);
+  color: white;
+  font-size: 16px;
+}
+
+.card {
+  background: rgba(255,255,255,0.08);
+  border-radius: 22px;
+  padding: 20px;
+  margin-top: 20px;
+  backdrop-filter: blur(20px);
+}
+
+.temp {
+  font-size: 64px;
+  font-weight: 200;
+}
+
+.week {
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  margin-top: 20px;
+  font-size: 12px;
+  text-align: center;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <h1 id="title">天气</h1>
+
+  <div class="search">
+    <input id="city" placeholder="输入城市 / City / 都市"/>
+    <button onclick="search()">搜索</button>
+  </div>
+
+  <div class="card" id="current"></div>
+  <div class="card" id="weekly"></div>
+</div>
+
+<script>
+const api = "/api/weather?target=";
+
+async function search() {
+  const city = document.getElementById("city").value;
+  const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`;
+  const geo = await fetch(api + encodeURIComponent(geoUrl)).then(r=>r.json());
+
+  if (!geo.results) return;
+
+  const { latitude, longitude, name } = geo.results[0];
+  loadWeather(latitude, longitude, name);
+}
+
+async function loadWeather(lat, lon, name) {
+  const url =
+`https://api.open-meteo.com/v1/forecast?
+latitude=${lat}&longitude=${lon}
+&current=temperature_2m,wind_speed_10m,relative_humidity_2m
+&daily=temperature_2m_max,temperature_2m_min,weathercode
+&timezone=auto`;
+
+  const data = await fetch(api + encodeURIComponent(url)).then(r=>r.json());
+
+  document.getElementById("current").innerHTML = `
+    <h2>${name}</h2>
+    <div class="temp">${data.current.temperature_2m}°</div>
+    <p>湿度 ${data.current.relative_humidity_2m}%</p>
+    <p>风速 ${data.current.wind_speed_10m} km/h</p>
+  `;
+
+  let html = "<h3>7 天预报</h3><div class='week'>";
+  data.daily.time.forEach((d,i)=>{
+    html += `
+      <div>
+        <div>${d.slice(5)}</div>
+        <div>${data.daily.temperature_2m_max[i]}°</div>
+        <div>${data.daily.temperature_2m_min[i]}°</div>
+      </div>`;
+  });
+  html += "</div>";
+
+  document.getElementById("weekly").innerHTML = html;
+}
+
+// IP 自动定位
+(async ()=>{
+  const ip = await fetch("https://ipapi.co/json/").then(r=>r.json());
+  loadWeather(ip.latitude, ip.longitude, ip.city);
+})();
+</script>
+</body>
+</html>
