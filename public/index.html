@@ -2,132 +2,113 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8" />
-<title>Weather</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+<title>天气查询</title>
 <style>
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display";
-  background: linear-gradient(180deg, #0b1224, #020617);
-  color: #fff;
+  background: radial-gradient(circle at top, #1b2b4a, #0b1220);
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont;
+  padding: 40px;
 }
-.container {
-  max-width: 680px;
-  margin: 40px auto;
-  padding: 20px;
-}
-h1 {
-  font-size: 34px;
-  font-weight: 600;
-}
-input {
-  width: 100%;
-  padding: 16px;
-  border-radius: 14px;
-  border: none;
-  font-size: 18px;
-}
-button {
-  margin-top: 12px;
-  padding: 12px 18px;
+input, button {
+  padding: 12px;
+  font-size: 16px;
   border-radius: 12px;
   border: none;
-  font-size: 16px;
-  background: linear-gradient(135deg,#5eead4,#818cf8);
-  color: #000;
+}
+button {
+  margin-left: 10px;
+  background: linear-gradient(135deg,#6dd5ed,#2193b0);
+  color: white;
 }
 .card {
-  margin-top: 24px;
   background: rgba(255,255,255,0.08);
   border-radius: 20px;
   padding: 20px;
+  margin-top: 20px;
 }
-.week {
-  display: grid;
-  grid-template-columns: repeat(7,1fr);
-  gap: 10px;
+.forecast {
+  display: flex;
+  gap: 12px;
   margin-top: 16px;
 }
 .day {
+  flex: 1;
   background: rgba(255,255,255,0.1);
   border-radius: 14px;
   padding: 10px;
   text-align: center;
-  font-size: 13px;
-}
-.lang {
-  float:right;
 }
 </style>
 </head>
 
 <body>
-<div class="container">
-  <select class="lang" onchange="setLang(this.value)">
-    <option value="zh">中文</option>
-    <option value="en">English</option>
-    <option value="ja">日本語</option>
-  </select>
 
-  <h1 id="title">天氣查詢</h1>
+<h1>天气查询</h1>
 
-  <input id="city" placeholder="輸入城市，如 Tokyo" />
-  <button onclick="search()">搜索</button>
+<input id="city" placeholder="输入城市，如 Osaka" />
+<button onclick="search()">搜索</button>
 
-  <div id="result"></div>
-</div>
+<div id="result"></div>
 
 <script>
-const PROXY_BASE = "/weather?url=";
-let LANG = "zh";
-
-const TEXT = {
-  zh: { title:"天氣查詢", max:"最高", min:"最低" },
-  en: { title:"Weather", max:"Max", min:"Min" },
-  ja: { title:"天気", max:"最高", min:"最低" }
-};
-
-function setLang(l){
-  LANG = l;
-  document.getElementById("title").innerText = TEXT[l].title;
-}
+const PROXY_BASE = "/weather";
 
 async function search() {
   const city = document.getElementById("city").value;
-  const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=${LANG}`;
-  const geo = await fetch(PROXY_BASE + encodeURIComponent(geoUrl)).then(r=>r.json());
+  if (!city) return;
 
-  if (!geo.results) return alert("City not found");
+  // 用 Open-Meteo 的地理编码
+  const geo = await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`
+  ).then(r => r.json());
 
-  const { latitude, longitude, name, country } = geo.results[0];
-  loadWeather(latitude, longitude, name, country);
+  if (!geo.results) {
+    alert("找不到城市");
+    return;
+  }
+
+  const { latitude, longitude, name } = geo.results[0];
+
+  const weather = await fetch(
+    `${PROXY_BASE}?lat=${latitude}&lon=${longitude}`
+  ).then(r => r.json());
+
+  render(name, weather);
 }
 
-async function loadWeather(lat, lon, name, country) {
-  const api = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
-  const data = await fetch(PROXY_BASE + encodeURIComponent(api)).then(r=>r.json());
+function render(city, data) {
+  const cur = data.current_weather;
+  const daily = data.daily;
 
-  let html = `<div class="card"><h2>${name}, ${country}</h2><div class="week">`;
+  let html = `
+    <div class="card">
+      <h2>${city}</h2>
+      <p>当前温度：${cur.temperature}°C</p>
+      <p>风速：${cur.windspeed} km/h</p>
+    </div>
 
-  data.daily.time.forEach((d,i)=>{
+    <div class="card">
+      <h3>未来 7 天</h3>
+      <div class="forecast">
+  `;
+
+  for (let i = 0; i < daily.time.length; i++) {
     html += `
       <div class="day">
-        <div>${d.slice(5)}</div>
-        <div>${TEXT[LANG].max}: ${data.daily.temperature_2m_max[i]}°</div>
-        <div>${TEXT[LANG].min}: ${data.daily.temperature_2m_min[i]}°</div>
-      </div>`;
-  });
+        <div>${daily.time[i]}</div>
+        <div>⬆ ${daily.temperature_2m_max[i]}°</div>
+        <div>⬇ ${daily.temperature_2m_min[i]}°</div>
+        <div>🌧 ${daily.precipitation_probability_max[i]}%</div>
+      </div>
+    `;
+  }
 
-  html += "</div></div>";
+  html += `</div></div>`;
+
   document.getElementById("result").innerHTML = html;
 }
-
-// IP 自動定位
-(async ()=>{
-  const ip = await fetch(PROXY_BASE + encodeURIComponent("https://ipapi.co/json/")).then(r=>r.json());
-  loadWeather(ip.latitude, ip.longitude, ip.city, ip.country_name);
-})();
 </script>
+
 </body>
 </html>
