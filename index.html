@@ -1,169 +1,187 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Apple Weather Pro</title>
 
-<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
 <style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont;
-  background: linear-gradient(180deg, #0b132b, #1c2541);
-  color: white;
+:root{
+  --bg:#0b1220;
+  --card:#111827;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+  --accent:#60a5fa;
+  font-family:Inter,system-ui,-apple-system;
 }
-
-.container {
-  max-width: 420px;
-  margin: auto;
-  padding: 20px;
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:linear-gradient(180deg,#0b1220,#020617);
+  color:var(--text);
 }
-
-.header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.app{
+  max-width:420px;
+  margin:0 auto;
+  padding:16px;
 }
-
-.sun {
-  width: 40px;
-  height: 40px;
-  animation: spin 20s linear infinite;
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-
-@keyframes spin {
-  from { transform: rotate(0); }
-  to { transform: rotate(360deg); }
+.search{
+  display:flex;
+  gap:8px;
+  margin-top:12px;
 }
-
-input {
-  width: 100%;
-  padding: 14px;
-  border-radius: 14px;
-  border: none;
-  font-size: 16px;
-  margin-top: 12px;
+input{
+  flex:1;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:#020617;
+  color:white;
 }
-
-.card {
-  background: rgba(255,255,255,0.1);
-  border-radius: 20px;
-  padding: 20px;
-  margin-top: 20px;
+button{
+  padding:10px 14px;
+  border-radius:10px;
+  border:none;
+  background:var(--accent);
+  color:#020617;
+  font-weight:700;
 }
-
-.temp {
-  font-size: 56px;
-  font-weight: 300;
+.card{
+  background:rgba(255,255,255,0.05);
+  border-radius:18px;
+  padding:16px;
+  margin-top:16px;
+  backdrop-filter:blur(12px);
 }
-
-.week {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 12px;
+.current{
+  text-align:center;
 }
-
-.day {
-  text-align: center;
-  font-size: 14px;
+.temp{
+  font-size:64px;
+  font-weight:700;
 }
-.lang {
-  margin-top: 12px;
-  display: flex;
-  gap: 8px;
+.desc{
+  color:var(--muted);
 }
-button {
-  flex: 1;
-  border-radius: 10px;
-  border: none;
-  padding: 8px;
+.forecast{
+  display:flex;
+  gap:12px;
+  overflow-x:auto;
+  margin-top:12px;
+}
+.day{
+  min-width:90px;
+  background:rgba(255,255,255,0.06);
+  border-radius:14px;
+  padding:10px;
+  text-align:center;
+}
+.lang{
+  display:flex;
+  gap:6px;
+}
+.lang button{
+  background:#020617;
+  color:white;
 }
 </style>
 </head>
 
 <body>
-<div class="container">
+<div class="app">
 
   <div class="header">
-    <svg class="sun" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="20" fill="#FFD93D"/>
-      <g stroke="#FFD93D" stroke-width="4">
-        <line x1="50" y1="5" x2="50" y2="20"/>
-        <line x1="50" y1="80" x2="50" y2="95"/>
-        <line x1="5" y1="50" x2="20" y2="50"/>
-        <line x1="80" y1="50" x2="95" y2="50"/>
-      </g>
-    </svg>
-    <h1>天气</h1>
+    <h2>☀️ Apple Weather</h2>
+    <div class="lang">
+      <button onclick="setLang('en')">EN</button>
+      <button onclick="setLang('zh')">中</button>
+      <button onclick="setLang('ja')">日</button>
+    </div>
   </div>
 
-  <input id="city" placeholder="输入城市 / Tokyo / 大阪" />
-
-  <div class="lang">
-    <button onclick="setLang('zh')">中文</button>
-    <button onclick="setLang('ja')">日本語</button>
-    <button onclick="setLang('en')">English</button>
+  <div class="search">
+    <input id="cityInput" placeholder="Search city"/>
+    <button onclick="search()">Search</button>
   </div>
 
-  <div id="result"></div>
+  <div id="weather"></div>
 
 </div>
 
 <script>
-let LANG = "zh";
+const PROXY = "/proxy?url=";
+let LANG = "en";
 
-const WMO = {
-  0:"☀️",1:"🌤️",2:"⛅",3:"☁️",
-  45:"🌫️",48:"🌫️",
-  51:"🌦️",61:"🌧️",71:"❄️"
+const TEXT = {
+  en:{search:"Search city"},
+  zh:{search:"搜索城市"},
+  ja:{search:"都市検索"}
 };
 
-function setLang(l){ LANG=l; locate(); }
-
-async function locate(){
-  const ip = await fetch("https://ipapi.co/json").then(r=>r.json());
-  load(ip.latitude, ip.longitude, ip.city);
+function setLang(l){
+  LANG=l;
+  document.getElementById("cityInput").placeholder=TEXT[l].search;
 }
 
-async function load(lat, lon, city){
-  const res = await fetch(`/weather?lat=${lat}&lon=${lon}&lang=${LANG}`);
-  const d = await res.json();
-
-  const daily = d.daily;
-  let html = `
-    <div class="card">
-      <h2>${city}</h2>
-      <div class="temp">${Math.round(d.current.temperature_2m)}°</div>
-      <p>${WMO[d.current.weathercode] || ""}</p>
-    </div>
-
-    <div class="card">
-      <h3>7 Day Forecast</h3>
-      ${daily.time.map((t,i)=>`
-        <div class="week">
-          <div class="day">${t.slice(5)}</div>
-          <div>${WMO[daily.weathercode[i]]}</div>
-          <div>${daily.temperature_2m_max[i]}° / ${daily.temperature_2m_min[i]}°</div>
-        </div>
-      `).join("")}
-    </div>
-  `;
-  document.getElementById("result").innerHTML = html;
+function icon(code){
+  if(code<3) return "☀️";
+  if(code<50) return "⛅️";
+  if(code<70) return "🌧️";
+  if(code<80) return "❄️";
+  return "🌫️";
 }
 
-document.getElementById("city").addEventListener("keydown", async e=>{
-  if(e.key==="Enter"){
-    const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${e.target.value}`)
-      .then(r=>r.json());
-    if(g.results?.length){
-      load(g.results[0].latitude, g.results[0].longitude, g.results[0].name);
-    }
-  }
-});
+async function search(){
+  const q=document.getElementById("cityInput").value;
+  if(!q) return;
 
-locate();
+  const geo=await fetch(PROXY+encodeURIComponent(
+    `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`
+  )).then(r=>r.json());
+
+  if(!geo[0]) return;
+
+  loadWeather(geo[0].lat,geo[0].lon,geo[0].display_name);
+}
+
+async function loadWeather(lat,lon,name){
+  const data=await fetch(PROXY+encodeURIComponent(
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`
+  )).then(r=>r.json());
+
+  let html=`
+  <div class="card current">
+    <h3>${name}</h3>
+    <div class="temp">${Math.round(data.current_weather.temperature)}°</div>
+    <div class="desc">${icon(data.current_weather.weathercode)}</div>
+  </div>
+  <div class="forecast">`;
+
+  data.daily.time.forEach((d,i)=>{
+    html+=`
+    <div class="day">
+      <div>${d.slice(5)}</div>
+      <div>${icon(data.daily.weathercode[i])}</div>
+      <div>${Math.round(data.daily.temperature_2m_max[i])}° / ${Math.round(data.daily.temperature_2m_min[i])}°</div>
+    </div>`;
+  });
+
+  html+="</div>";
+  document.getElementById("weather").innerHTML=html;
+}
+
+// IP 自动定位
+fetch("https://ipapi.co/json")
+.then(r=>r.json())
+.then(p=>loadWeather(p.latitude,p.longitude,p.city));
 </script>
+
 </body>
 </html>
