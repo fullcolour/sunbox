@@ -8,7 +8,13 @@ export async function onRequest(context) {
   if (!lat || !lon) {
     return new Response(
       JSON.stringify({ error: "Missing lat or lon" }),
-      { status: 400 }
+      {
+        status: 400,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      }
     );
   }
 
@@ -20,13 +26,27 @@ export async function onRequest(context) {
     `&timezone=auto` +
     `&language=${lang}`;
 
-  const res = await fetch(api);
-  const data = await res.json();
+  try {
+    const res = await fetch(api);
+    const data = await res.json();
 
-  return new Response(JSON.stringify(data), {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=600"
-    }
-  });
+    return new Response(JSON.stringify(data), {
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=600",
+        "Access-Control-Allow-Origin": "*"
+      }
+    });
+  } catch (e) {
+    return new Response(
+      JSON.stringify({ error: "Failed to fetch weather data" }),
+      {
+        status: 502,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      }
+    );
+  }
 }
