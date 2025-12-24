@@ -1,125 +1,127 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>天氣查詢</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-        "Helvetica Neue", Arial;
-      background: radial-gradient(circle at top, #0f1b3d, #020617);
-      color: #fff;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weather · 7 Day Forecast</title>
 
-    .app {
-      max-width: 720px;
-      margin: 60px auto;
-      padding: 24px;
-    }
-
-    h1 {
-      font-size: 36px;
-      margin-bottom: 6px;
-    }
-
-    .subtitle {
-      opacity: 0.7;
-      margin-bottom: 24px;
-    }
-
-    .search {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-
-    input {
-      flex: 1;
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: none;
-      font-size: 16px;
-    }
-
-    button {
-      padding: 14px 18px;
-      border-radius: 14px;
-      border: none;
-      font-size: 16px;
-      background: linear-gradient(135deg, #6ee7f9, #818cf8);
-      color: #000;
-      cursor: pointer;
-    }
-
-    .card {
-      margin-top: 20px;
-      padding: 20px;
-      border-radius: 20px;
-      background: rgba(255,255,255,0.08);
-      backdrop-filter: blur(10px);
-    }
-
-    .error {
-      color: #fca5a5;
-      margin-top: 12px;
-    }
-  </style>
+<style>
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont;
+  background:#0b1220;
+  color:#fff;
+}
+.container{
+  max-width:520px;
+  margin:20px auto;
+  padding:16px;
+}
+.card{
+  background:rgba(255,255,255,0.06);
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:16px;
+}
+input,button{
+  padding:10px;
+  border-radius:10px;
+  border:none;
+}
+input{
+  width:70%;
+}
+button{
+  background:#4f8cff;
+  color:#fff;
+  margin-left:6px;
+}
+.day{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+}
+.small{opacity:.7;font-size:13px}
+</style>
 </head>
 
 <body>
-  <div class="app">
-    <h1>天氣查詢</h1>
-    <div class="subtitle">Open-Meteo + Cloudflare Pages Functions</div>
+<div class="container">
 
-    <div class="search">
-      <input id="city" placeholder="輸入城市，如 Tokyo" />
-      <button onclick="search()">搜尋</button>
-    </div>
-
-    <div id="result"></div>
-    <div id="error" class="error"></div>
+  <div class="card">
+    <input id="cityInput" placeholder="输入城市，如 Tokyo">
+    <button id="searchBtn">搜寻</button>
+    <div id="status" class="small"></div>
   </div>
 
+  <div id="current" class="card"></div>
+  <div id="forecast" class="card"></div>
+
+</div>
+
 <script>
-const PROXY_BASE = ''; // ✅ 一定要是空
+const PROXY = "/proxy";
 
-async function search() {
-  const city = document.getElementById('city').value.trim();
-  const result = document.getElementById('result');
-  const error = document.getElementById('error');
-
-  result.innerHTML = '';
-  error.textContent = '';
-
-  if (!city) {
-    error.textContent = '請輸入城市';
-    return;
-  }
-
-  try {
-    const res = await fetch(`/api/weather?city=${encodeURIComponent(city)}`);
-    const data = await res.json();
-
-    if (data.error) {
-      error.textContent = data.error;
-      return;
-    }
-
-    result.innerHTML = `
-      <div class="card">
-        <h2>${data.city}</h2>
-        <p>🌡 溫度：${data.temperature} °C</p>
-        <p>💨 風速：${data.wind} km/h</p>
-        <p>🕒 時間：${data.time}</p>
-      </div>
-    `;
-  } catch (e) {
-    error.textContent = e.message;
-  }
+async function proxyFetch(url){
+  const res = await fetch(PROXY + "?url=" + encodeURIComponent(url));
+  if(!res.ok) throw new Error("Proxy failed");
+  return res.json();
 }
+
+async function geocode(city){
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`;
+  return proxyFetch(url);
+}
+
+async function weather(lat,lon){
+  const url =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${lat}&longitude=${lon}` +
+    `&current_weather=true` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max` +
+    `&forecast_days=7&timezone=auto`;
+  return proxyFetch(url);
+}
+
+function render(data, city){
+  const cw = data.current_weather;
+  const d = data.daily;
+
+  document.getElementById("current").innerHTML = `
+    <h3>${city}</h3>
+    <div>当前温度：${cw.temperature}°C</div>
+    <div class="small">风速 ${cw.windspeed} m/s</div>
+  `;
+
+  let html = "<h3>未来 7 天</h3>";
+  for(let i=0;i<d.time.length;i++){
+    html += `
+      <div class="day">
+        <div>${d.time[i]}</div>
+        <div>${d.temperature_2m_min[i]}° / ${d.temperature_2m_max[i]}°</div>
+      </div>`;
+  }
+  document.getElementById("forecast").innerHTML = html;
+}
+
+document.getElementById("searchBtn").onclick = async ()=>{
+  const city = cityInput.value.trim();
+  if(!city) return;
+
+  status.textContent = "查询中…";
+
+  try{
+    const geo = await geocode(city);
+    if(!geo.length) throw new Error("城市不存在");
+
+    const w = await weather(geo[0].lat, geo[0].lon);
+    render(w, geo[0].display_name);
+    status.textContent = "";
+  }catch(e){
+    status.textContent = "查询失败";
+  }
+};
 </script>
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"968645dcbd7e4762a9ad4efb93bde9c5","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
