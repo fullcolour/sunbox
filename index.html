@@ -108,7 +108,7 @@ button{
 
   <div class="search">
     <input id="cityInput" placeholder="Search city"/>
-    <button onclick="search()">Search</button>
+    <button onclick="searchCity()">Search</button>
   </div>
 
   <div id="weather"></div>
@@ -138,17 +138,20 @@ function icon(code){
 }
 
 // ---------------------------
-// 搜索城市 → 地理编码
+// 搜索城市 → 地理编码（直接调用 Nominatim）
 // ---------------------------
-async function search(){
-  const q=document.getElementById("cityInput").value;
+async function searchCity(){
+  const q=document.getElementById("cityInput").value.trim();
   if(!q) return;
 
   const geo = await fetch(
-    `/weather-geo?q=${encodeURIComponent(q)}`
+    `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`
   ).then(r=>r.json());
 
-  if(!geo[0]) return;
+  if(!geo[0]) {
+    alert("City not found");
+    return;
+  }
 
   loadWeather(geo[0].lat, geo[0].lon, geo[0].display_name);
 }
@@ -157,9 +160,8 @@ async function search(){
 // 加载天气（调用你的 Worker）
 // ---------------------------
 async function loadWeather(lat, lon, name){
-  const data = await fetch(
-    `/weather?lat=${lat}&lon=${lon}&lang=${LANG}`
-  ).then(r=>r.json());
+  const url = `/weather?lat=${lat}&lon=${lon}&lang=${LANG}`;
+  const data = await fetch(url).then(r=>r.json());
 
   let html=`
   <div class="card current">
