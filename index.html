@@ -2,137 +2,147 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Weather</title>
+
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0a0f2c" />
 
 <style>
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont;
-  background: linear-gradient(180deg,#0b1530,#020617);
+  background: radial-gradient(circle at top, #1b2b5f, #050916);
   color: white;
 }
 
-.container {
-  max-width: 420px;
-  margin: 40px auto;
-  padding: 20px;
-}
-
-h1 {
-  font-size: 36px;
-  font-weight: 700;
-}
-
-.search {
+header {
   display: flex;
-  gap: 10px;
-  margin: 20px 0;
+  align-items: center;
+  padding: 24px;
+  gap: 12px;
+}
+
+.sun {
+  width: 42px;
+  height: 42px;
+  animation: spin 20s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 input {
-  flex: 1;
-  padding: 14px;
-  border-radius: 14px;
+  width: 100%;
+  padding: 18px;
+  border-radius: 18px;
   border: none;
-  font-size: 16px;
+  font-size: 18px;
+  margin: 20px;
 }
 
 button {
-  padding: 14px 18px;
+  padding: 12px 16px;
   border-radius: 14px;
   border: none;
-  background: linear-gradient(135deg,#5ac8fa,#5856d6);
+  background: linear-gradient(135deg, #6dd5fa, #2980b9);
   color: white;
-  font-size: 16px;
 }
 
 .card {
   background: rgba(255,255,255,0.08);
-  border-radius: 22px;
-  padding: 20px;
-  margin-top: 20px;
+  border-radius: 24px;
+  padding: 24px;
+  margin: 20px;
   backdrop-filter: blur(20px);
 }
 
-.temp {
-  font-size: 64px;
-  font-weight: 200;
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-top: 20px;
 }
 
-.week {
-  display: grid;
-  grid-template-columns: repeat(7,1fr);
-  margin-top: 20px;
-  font-size: 12px;
+.day {
+  background: rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 10px;
   text-align: center;
 }
 </style>
 </head>
 
 <body>
-<div class="container">
-  <h1 id="title">天气</h1>
 
-  <div class="search">
-    <input id="city" placeholder="输入城市 / City / 都市"/>
-    <button onclick="search()">搜索</button>
-  </div>
+<header>
+<svg class="sun" viewBox="0 0 100 100">
+<circle cx="50" cy="50" r="20" fill="#FFD93B"/>
+</svg>
+<h1>Weather</h1>
+</header>
 
-  <div class="card" id="current"></div>
-  <div class="card" id="weekly"></div>
+<input id="city" placeholder="Tokyo / 東京 / 東京" />
+<button onclick="search()">Search</button>
+
+<div class="card" id="current"></div>
+<div class="card">
+  <h3>7 Day Forecast</h3>
+  <div class="days" id="forecast"></div>
 </div>
 
 <script>
-const api = "/api/weather?target=";
+const WMO = {
+  0: "☀️",
+  1: "🌤️",
+  2: "⛅",
+  3: "☁️",
+  45: "🌫️",
+  48: "🌫️",
+  51: "🌦️",
+  61: "🌧️",
+  71: "❄️",
+  95: "⛈️"
+};
 
 async function search() {
   const city = document.getElementById("city").value;
-  const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1`;
-  const geo = await fetch(api + encodeURIComponent(geoUrl)).then(r=>r.json());
+  const geo = await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${city}`
+  ).then(r => r.json());
 
-  if (!geo.results) return;
-
-  const { latitude, longitude, name } = geo.results[0];
-  loadWeather(latitude, longitude, name);
+  const loc = geo.results[0];
+  loadWeather(loc.latitude, loc.longitude, loc.name);
 }
 
 async function loadWeather(lat, lon, name) {
-  const url =
-`https://api.open-meteo.com/v1/forecast?
-latitude=${lat}&longitude=${lon}
-&current=temperature_2m,wind_speed_10m,relative_humidity_2m
-&daily=temperature_2m_max,temperature_2m_min,weathercode
-&timezone=auto`;
-
-  const data = await fetch(api + encodeURIComponent(url)).then(r=>r.json());
+  const res = await fetch(`/weather?lat=${lat}&lon=${lon}`);
+  const data = await res.json();
 
   document.getElementById("current").innerHTML = `
     <h2>${name}</h2>
-    <div class="temp">${data.current.temperature_2m}°</div>
-    <p>湿度 ${data.current.relative_humidity_2m}%</p>
-    <p>风速 ${data.current.wind_speed_10m} km/h</p>
+    <p>🌡️ ${data.current_weather.temperature}°C</p>
+    <p>💨 ${data.current_weather.windspeed} km/h</p>
   `;
 
-  let html = "<h3>7 天预报</h3><div class='week'>";
-  data.daily.time.forEach((d,i)=>{
-    html += `
-      <div>
-        <div>${d.slice(5)}</div>
-        <div>${data.daily.temperature_2m_max[i]}°</div>
-        <div>${data.daily.temperature_2m_min[i]}°</div>
-      </div>`;
-  });
-  html += "</div>";
+  const days = data.daily.time.map((d, i) => `
+    <div class="day">
+      <div>${d.slice(5)}</div>
+      <div>${WMO[data.daily.weathercode[i]] || "❔"}</div>
+      <div>${data.daily.temperature_2m_max[i]}° / ${data.daily.temperature_2m_min[i]}°</div>
+    </div>
+  `).join("");
 
-  document.getElementById("weekly").innerHTML = html;
+  document.getElementById("forecast").innerHTML = days;
 }
 
 // IP 自动定位
-(async ()=>{
-  const ip = await fetch("https://ipapi.co/json/").then(r=>r.json());
-  loadWeather(ip.latitude, ip.longitude, ip.city);
-})();
+navigator.geolocation.getCurrentPosition(pos => {
+  loadWeather(pos.coords.latitude, pos.coords.longitude, "Current Location");
+});
 </script>
+
 </body>
 </html>
