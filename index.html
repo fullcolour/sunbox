@@ -1,127 +1,148 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Weather · 7 Day Forecast</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Apple Weather Pro</title>
 
 <style>
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont;
-  background:#0b1220;
-  color:#fff;
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont;
+  background: linear-gradient(#0a1d37, #071426);
+  color: #fff;
 }
-.container{
-  max-width:520px;
-  margin:20px auto;
-  padding:16px;
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
 }
-.card{
-  background:rgba(255,255,255,0.06);
-  border-radius:16px;
-  padding:16px;
-  margin-bottom:16px;
+input, button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  margin-bottom: 10px;
 }
-input,button{
-  padding:10px;
-  border-radius:10px;
-  border:none;
+button {
+  background: #4f7cff;
+  color: white;
+  font-weight: 600;
 }
-input{
-  width:70%;
+.card {
+  background: rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 12px;
 }
-button{
-  background:#4f8cff;
-  color:#fff;
-  margin-left:6px;
+.forecast {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
 }
-.day{
-  display:flex;
-  justify-content:space-between;
-  padding:8px 0;
-  border-bottom:1px solid rgba(255,255,255,0.1);
+.day {
+  min-width: 120px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
 }
-.small{opacity:.7;font-size:13px}
+.small { opacity: 0.7; font-size: 12px; }
+.big { font-size: 32px; font-weight: 600; }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-  <div class="card">
-    <input id="cityInput" placeholder="输入城市，如 Tokyo">
-    <button id="searchBtn">搜寻</button>
-    <div id="status" class="small"></div>
-  </div>
+  <input id="q" placeholder="城市 / City / 都市" />
+  <button onclick="search()">搜索 / Search</button>
 
-  <div id="current" class="card"></div>
-  <div id="forecast" class="card"></div>
+  <div id="result"></div>
 
 </div>
 
 <script>
-const PROXY = "/proxy";
+const PROXY = '/proxy';
 
-async function proxyFetch(url){
-  const res = await fetch(PROXY + "?url=" + encodeURIComponent(url));
-  if(!res.ok) throw new Error("Proxy failed");
+const WMO = {
+  0: "☀️ Clear",
+  1: "🌤️ Mostly Clear",
+  2: "⛅ Partly Cloudy",
+  3: "☁️ Cloudy",
+  45: "🌫️ Fog",
+  61: "🌧️ Rain",
+  71: "❄️ Snow",
+  95: "⛈️ Storm"
+};
+
+async function proxyFetch(url) {
+  const res = await fetch(`${PROXY}?url=${encodeURIComponent(url)}`);
   return res.json();
 }
 
-async function geocode(city){
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`;
-  return proxyFetch(url);
+async function geocode(q) {
+  return proxyFetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`
+  );
 }
 
-async function weather(lat,lon){
-  const url =
+async function weather(lat, lon) {
+  return proxyFetch(
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${lat}&longitude=${lon}` +
     `&current_weather=true` +
-    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max` +
-    `&forecast_days=7&timezone=auto`;
-  return proxyFetch(url);
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode` +
+    `&timezone=auto`
+  );
 }
 
-function render(data, city){
-  const cw = data.current_weather;
+async function search() {
+  const q = document.getElementById('q').value;
+  if (!q) return;
+
+  document.getElementById('result').innerHTML = 'Loading...';
+
+  try {
+    const geo = await geocode(q);
+    const w = await weather(geo[0].lat, geo[0].lon);
+
+    render(w, geo[0].display_name);
+  } catch (e) {
+    document.getElementById('result').innerHTML = 'Error';
+  }
+}
+
+function render(data, city) {
+  const c = data.current_weather;
   const d = data.daily;
 
-  document.getElementById("current").innerHTML = `
-    <h3>${city}</h3>
-    <div>当前温度：${cw.temperature}°C</div>
-    <div class="small">风速 ${cw.windspeed} m/s</div>
+  let html = `
+    <div class="card">
+      <div class="small">${city}</div>
+      <div class="big">${c.temperature}°C</div>
+      <div>${WMO[c.weathercode] || ''}</div>
+      <div class="small">Wind ${c.windspeed} km/h</div>
+    </div>
+
+    <div class="forecast">
   `;
 
-  let html = "<h3>未来 7 天</h3>";
-  for(let i=0;i<d.time.length;i++){
+  for (let i = 0; i < d.time.length; i++) {
     html += `
       <div class="day">
-        <div>${d.time[i]}</div>
-        <div>${d.temperature_2m_min[i]}° / ${d.temperature_2m_max[i]}°</div>
-      </div>`;
+        <div class="small">${d.time[i]}</div>
+        <div>${WMO[d.weathercode[i]] || ''}</div>
+        <div>${d.temperature_2m_max[i]}° / ${d.temperature_2m_min[i]}°</div>
+        <div class="small">Rain ${d.precipitation_sum[i]}mm</div>
+      </div>
+    `;
   }
-  document.getElementById("forecast").innerHTML = html;
+
+  html += `</div>`;
+
+  document.getElementById('result').innerHTML = html;
 }
-
-document.getElementById("searchBtn").onclick = async ()=>{
-  const city = cityInput.value.trim();
-  if(!city) return;
-
-  status.textContent = "查询中…";
-
-  try{
-    const geo = await geocode(city);
-    if(!geo.length) throw new Error("城市不存在");
-
-    const w = await weather(geo[0].lat, geo[0].lon);
-    render(w, geo[0].display_name);
-    status.textContent = "";
-  }catch(e){
-    status.textContent = "查询失败";
-  }
-};
 </script>
 </body>
 </html>
