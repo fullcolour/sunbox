@@ -5,11 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Apple Weather Pro</title>
 
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a1d37">
+
 <style>
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display";
-  background: linear-gradient(180deg, #0a1d37, #071426);
+  font-family: -apple-system, BlinkMacSystemFont;
+  background: linear-gradient(#0a1d37, #071426);
   color: #fff;
 }
 .container {
@@ -17,89 +20,67 @@ body {
   margin: 0 auto;
   padding: 16px;
 }
-
-/* Header */
-.header {
+h1 {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
 }
-.sun {
-  width: 36px;
-  height: 36px;
-  animation: spin 18s linear infinite;
-}
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-h1 {
-  font-size: 20px;
-  margin: 0;
-  font-weight: 600;
-}
-
-/* Inputs */
 input, button {
   width: 100%;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: 12px;
   border: none;
-  margin-bottom: 10px;
-  font-size: 15px;
-}
-input {
-  background: rgba(255,255,255,0.12);
-  color: white;
+  margin-bottom: 8px;
 }
 button {
   background: #4f7cff;
   color: white;
   font-weight: 600;
 }
-
-/* Cards */
 .card {
-  background: rgba(255,255,255,0.12);
-  border-radius: 18px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 16px;
   padding: 16px;
   margin-top: 12px;
-  backdrop-filter: blur(12px);
-  animation: fadeIn .4s ease;
 }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
-
-.big {
-  font-size: 36px;
-  font-weight: 600;
-}
-.small {
-  opacity: .75;
-  font-size: 12px;
-}
-
-/* Forecast */
 .forecast {
   display: flex;
   overflow-x: auto;
-  gap: 12px;
+  gap: 10px;
   margin-top: 12px;
-  padding-bottom: 6px;
 }
 .day {
   min-width: 120px;
-  background: rgba(255,255,255,0.14);
-  border-radius: 16px;
-  padding: 12px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px;
   text-align: center;
 }
-.icon {
-  font-size: 22px;
-  margin: 6px 0;
+.small { opacity: 0.7; font-size: 12px; }
+.big { font-size: 32px; font-weight: 600; }
+
+#suggest {
+  background: rgba(0,0,0,0.6);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.s-item {
+  padding: 10px;
+  cursor: pointer;
+}
+.s-item:hover {
+  background: rgba(255,255,255,0.15);
+}
+
+/* 🌞 太阳 SVG 动画 */
+.sun {
+  width: 32px;
+  height: 32px;
+  animation: spin 12s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
 }
 </style>
 </head>
@@ -107,145 +88,111 @@ button {
 <body>
 <div class="container">
 
-  <!-- Header -->
-  <div class="header">
-    <!-- Animated Sun -->
-    <svg class="sun" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="18" fill="#FFD93B"/>
-      <g stroke="#FFD93B" stroke-width="4">
-        <line x1="50" y1="2" x2="50" y2="18"/>
-        <line x1="50" y1="82" x2="50" y2="98"/>
-        <line x1="2" y1="50" x2="18" y2="50"/>
-        <line x1="82" y1="50" x2="98" y2="50"/>
-        <line x1="15" y1="15" x2="26" y2="26"/>
-        <line x1="74" y1="74" x2="85" y2="85"/>
-        <line x1="15" y1="85" x2="26" y2="74"/>
-        <line x1="74" y1="26" x2="85" y2="15"/>
-      </g>
-    </svg>
-    <h1>Apple Weather Pro</h1>
-  </div>
+<h1>
+<svg class="sun" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="20" fill="#FFD93B"/>
+  <g stroke="#FFD93B" stroke-width="6">
+    <line x1="50" y1="5" x2="50" y2="20"/>
+    <line x1="50" y1="80" x2="50" y2="95"/>
+    <line x1="5" y1="50" x2="20" y2="50"/>
+    <line x1="80" y1="50" x2="95" y2="50"/>
+  </g>
+</svg>
+Apple Weather Pro
+</h1>
 
-  <!-- Search -->
-  <input id="q" placeholder="城市 / City / 都市" />
-  <button onclick="search()">搜索 / Search</button>
+<input id="q" placeholder="城市 / City / 都市" oninput="suggestCity(this.value)" />
+<div id="suggest"></div>
+<button onclick="search()">搜索 / Search</button>
 
-  <div id="result"></div>
+<div id="result"></div>
 
 </div>
 
 <script>
-/* ======================
-   Config
-====================== */
 const PROXY = '/proxy';
 
-/* WMO Weather Mapping */
 const WMO = {
-  0: "☀️ Clear",
-  1: "🌤️ Mostly Clear",
-  2: "⛅ Partly Cloudy",
-  3: "☁️ Cloudy",
-  45: "🌫️ Fog",
-  48: "🌫️ Fog",
-  51: "🌦️ Drizzle",
-  61: "🌧️ Rain",
-  63: "🌧️ Heavy Rain",
-  71: "❄️ Snow",
-  73: "❄️ Heavy Snow",
-  95: "⛈️ Storm"
+  0:"☀️",1:"🌤️",2:"⛅",3:"☁️",
+  45:"🌫️",61:"🌧️",71:"❄️",95:"⛈️"
 };
 
-/* ======================
-   Helpers
-====================== */
-async function proxyFetch(url) {
-  const res = await fetch(`${PROXY}?url=${encodeURIComponent(url)}`);
-  if (!res.ok) throw new Error('Proxy error');
-  return res.json();
+async function proxyFetch(url){
+  const r = await fetch(`${PROXY}?url=${encodeURIComponent(url)}`);
+  return r.json();
 }
 
-/* Geocoding */
-async function geocode(q) {
+/* 城市自动补全 */
+async function suggestCity(q){
+  if(q.length<2){suggest.innerHTML='';return;}
+  const res = await proxyFetch(
+    `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=5`
+  );
+  suggest.innerHTML = res.map(r =>
+    `<div class="s-item" onclick="pick('${r.display_name}',${r.lat},${r.lon})">${r.display_name}</div>`
+  ).join('');
+}
+
+function pick(name,lat,lon){
+  q.value=name;
+  suggest.innerHTML='';
+  loadWeather(lat,lon,name);
+}
+
+async function geocode(q){
   return proxyFetch(
-    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`
+    `https://nominatim.openstreetmap.org/search?format=json&q=${q}&limit=1`
   );
 }
 
-/* Weather */
-async function weather(lat, lon) {
+async function weather(lat,lon){
   return proxyFetch(
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${lat}&longitude=${lon}` +
     `&current_weather=true` +
     `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max,weathercode` +
-    `&forecast_days=7` +
     `&timezone=auto`
   );
 }
 
-/* ======================
-   Main Logic
-====================== */
-async function search() {
-  const q = document.getElementById('q').value.trim();
-  if (!q) return;
-
-  document.getElementById('result').innerHTML = 'Loading…';
-
-  try {
-    const geo = await geocode(q);
-    const w = await weather(geo[0].lat, geo[0].lon);
-    render(w, geo[0].display_name);
-  } catch (e) {
-    document.getElementById('result').innerHTML = 'Error loading data';
-  }
+async function search(){
+  if(!q.value) return;
+  const g = await geocode(q.value);
+  loadWeather(g[0].lat,g[0].lon,g[0].display_name);
 }
 
-/* Render */
-function render(data, city) {
-  const c = data.current_weather;
-  const d = data.daily;
-
-  let html = `
-    <div class="card">
-      <div class="small">${city}</div>
-      <div class="big">${c.temperature}°C</div>
-      <div class="icon">${WMO[c.weathercode] || ''}</div>
-      <div class="small">
-        Wind ${c.windspeed} km/h
-      </div>
-    </div>
-
-    <div class="forecast">
-  `;
-
-  for (let i = 0; i < d.time.length; i++) {
-    html += `
-      <div class="day">
-        <div class="small">${d.time[i]}</div>
-        <div class="icon">${WMO[d.weathercode[i]] || ''}</div>
-        <div>${d.temperature_2m_max[i]}° / ${d.temperature_2m_min[i]}°</div>
-        <div class="small">Rain ${d.precipitation_sum[i]} mm</div>
-        <div class="small">Wind ${d.windspeed_10m_max[i]} km/h</div>
-      </div>
-    `;
-  }
-
-  html += `</div>`;
-  document.getElementById('result').innerHTML = html;
+async function loadWeather(lat,lon,city){
+  result.innerHTML='Loading...';
+  const w = await weather(lat,lon);
+  render(w,city);
 }
 
-/* ======================
-   Auto IP Locate
-====================== */
-(async () => {
-  try {
-    const loc = await proxyFetch('https://ipapi.co/json/');
-    document.getElementById('q').value = loc.city;
-    search();
-  } catch {}
-})();
+function render(data,city){
+  const c=data.current_weather,d=data.daily;
+  let html=`
+  <div class="card">
+    <div class="small">${city}</div>
+    <div class="big">${c.temperature}°C ${WMO[c.weathercode]}</div>
+    <div class="small">Wind ${c.windspeed} km/h</div>
+  </div>
+  <div class="forecast">`;
+  for(let i=0;i<d.time.length;i++){
+    html+=`
+    <div class="day">
+      <div class="small">${d.time[i]}</div>
+      <div>${WMO[d.weathercode[i]]}</div>
+      <div>${d.temperature_2m_max[i]}° / ${d.temperature_2m_min[i]}°</div>
+      <div class="small">Rain ${d.precipitation_sum[i]}mm</div>
+    </div>`;
+  }
+  html+='</div>';
+  result.innerHTML=html;
+}
+
+/* PWA */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js');
+}
 </script>
 </body>
 </html>
