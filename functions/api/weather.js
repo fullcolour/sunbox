@@ -18,10 +18,11 @@ export async function onRequest(context) {
     );
   }
 
-  const api = `https://api.open-meteo.com/v1/forecast` +
+  const api =
+    `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${lat}` +
     `&longitude=${lon}` +
-    `&current=temperature_2m,apparent_temperature,weathercode,wind_speed_10m` +
+    `&current=temperature_2m,weathercode,wind_speed_10m` +
     `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum` +
     `&timezone=auto` +
     `&language=${lang}`;
@@ -33,15 +34,15 @@ export async function onRequest(context) {
     return new Response(JSON.stringify(data), {
       headers: {
         "Content-Type": "application/json",
-        "Cache-Control": "public, max-age=600",
-        "Access-Control-Allow-Origin": "*"
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=600"
       }
     });
-  } catch (e) {
+  } catch (err) {
     return new Response(
-      JSON.stringify({ error: "Failed to fetch weather data" }),
+      JSON.stringify({ error: "Failed to fetch weather" }),
       {
-        status: 502,
+        status: 500,
         headers: {
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": "*"
