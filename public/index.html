@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Apple Weather Pro</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont;
+  background: linear-gradient(180deg, #0b132b, #1c2541);
+  color: white;
+}
+
+.container {
+  max-width: 420px;
+  margin: auto;
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sun {
+  width: 40px;
+  height: 40px;
+  animation: spin 20s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  font-size: 16px;
+  margin-top: 12px;
+}
+
+.card {
+  background: rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.temp {
+  font-size: 56px;
+  font-weight: 300;
+}
+
+.week {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.day {
+  text-align: center;
+  font-size: 14px;
+}
+.lang {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+button {
+  flex: 1;
+  border-radius: 10px;
+  border: none;
+  padding: 8px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="header">
+    <svg class="sun" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="20" fill="#FFD93D"/>
+      <g stroke="#FFD93D" stroke-width="4">
+        <line x1="50" y1="5" x2="50" y2="20"/>
+        <line x1="50" y1="80" x2="50" y2="95"/>
+        <line x1="5" y1="50" x2="20" y2="50"/>
+        <line x1="80" y1="50" x2="95" y2="50"/>
+      </g>
+    </svg>
+    <h1>天气</h1>
+  </div>
+
+  <input id="city" placeholder="输入城市 / Tokyo / 大阪" />
+
+  <div class="lang">
+    <button onclick="setLang('zh')">中文</button>
+    <button onclick="setLang('ja')">日本語</button>
+    <button onclick="setLang('en')">English</button>
+  </div>
+
+  <div id="result"></div>
+
+</div>
+
+<script>
+let LANG = "zh";
+
+const WMO = {
+  0:"☀️",1:"🌤️",2:"⛅",3:"☁️",
+  45:"🌫️",48:"🌫️",
+  51:"🌦️",61:"🌧️",71:"❄️"
+};
+
+function setLang(l){ LANG=l; locate(); }
+
+async function locate(){
+  const ip = await fetch("https://ipapi.co/json").then(r=>r.json());
+  load(ip.latitude, ip.longitude, ip.city);
+}
+
+async function load(lat, lon, city){
+  const res = await fetch(`/weather?lat=${lat}&lon=${lon}&lang=${LANG}`);
+  const d = await res.json();
+
+  const daily = d.daily;
+  let html = `
+    <div class="card">
+      <h2>${city}</h2>
+      <div class="temp">${Math.round(d.current.temperature_2m)}°</div>
+      <p>${WMO[d.current.weathercode] || ""}</p>
+    </div>
+
+    <div class="card">
+      <h3>7 Day Forecast</h3>
+      ${daily.time.map((t,i)=>`
+        <div class="week">
+          <div class="day">${t.slice(5)}</div>
+          <div>${WMO[daily.weathercode[i]]}</div>
+          <div>${daily.temperature_2m_max[i]}° / ${daily.temperature_2m_min[i]}°</div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+  document.getElementById("result").innerHTML = html;
+}
+
+document.getElementById("city").addEventListener("keydown", async e=>{
+  if(e.key==="Enter"){
+    const g = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${e.target.value}`)
+      .then(r=>r.json());
+    if(g.results?.length){
+      load(g.results[0].latitude, g.results[0].longitude, g.results[0].name);
+    }
+  }
+});
+
+locate();
+</script>
+</body>
+</html>
