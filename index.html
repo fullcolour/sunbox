@@ -116,7 +116,6 @@ button{
 </div>
 
 <script>
-const PROXY = "/proxy?url=";
 let LANG = "en";
 
 const TEXT = {
@@ -138,29 +137,35 @@ function icon(code){
   return "🌫️";
 }
 
+// ---------------------------
+// 搜索城市 → 地理编码
+// ---------------------------
 async function search(){
   const q=document.getElementById("cityInput").value;
   if(!q) return;
 
-  const geo=await fetch(PROXY+encodeURIComponent(
-    `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`
-  )).then(r=>r.json());
+  const geo = await fetch(
+    `/weather-geo?q=${encodeURIComponent(q)}`
+  ).then(r=>r.json());
 
   if(!geo[0]) return;
 
-  loadWeather(geo[0].lat,geo[0].lon,geo[0].display_name);
+  loadWeather(geo[0].lat, geo[0].lon, geo[0].display_name);
 }
 
-async function loadWeather(lat,lon,name){
-  const data=await fetch(PROXY+encodeURIComponent(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`
-  )).then(r=>r.json());
+// ---------------------------
+// 加载天气（调用你的 Worker）
+// ---------------------------
+async function loadWeather(lat, lon, name){
+  const data = await fetch(
+    `/weather?lat=${lat}&lon=${lon}&lang=${LANG}`
+  ).then(r=>r.json());
 
   let html=`
   <div class="card current">
     <h3>${name}</h3>
-    <div class="temp">${Math.round(data.current_weather.temperature)}°</div>
-    <div class="desc">${icon(data.current_weather.weathercode)}</div>
+    <div class="temp">${Math.round(data.current.temperature_2m)}°</div>
+    <div class="desc">${icon(data.current.weathercode)}</div>
   </div>
   <div class="forecast">`;
 
@@ -177,7 +182,9 @@ async function loadWeather(lat,lon,name){
   document.getElementById("weather").innerHTML=html;
 }
 
+// ---------------------------
 // IP 自动定位
+// ---------------------------
 fetch("https://ipapi.co/json")
 .then(r=>r.json())
 .then(p=>loadWeather(p.latitude,p.longitude,p.city));
