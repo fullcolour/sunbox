@@ -134,6 +134,15 @@ async function geocode(q){
   const res = await fetchProxy(api);
   if(!res.ok) throw new Error("地理编码失败");
   return res.json();
+  Array.from(document.querySelectorAll('.place-item')).forEach(node => {
+  node.addEventListener('click', () => {
+    const lat = node.getAttribute('data-lat');
+    const lon = node.getAttribute('data-lon');
+    const label = node.textContent;
+    fetchAndRenderWeather(lat, lon, label);
+  });
+});
+
 }
 
 async function fetchWeather(lat,lon,units){
