@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<title>Weather</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+<style>
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display";
+  background: linear-gradient(180deg, #0b1224, #020617);
+  color: #fff;
+}
+.container {
+  max-width: 680px;
+  margin: 40px auto;
+  padding: 20px;
+}
+h1 {
+  font-size: 34px;
+  font-weight: 600;
+}
+input {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: none;
+  font-size: 18px;
+}
+button {
+  margin-top: 12px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: none;
+  font-size: 16px;
+  background: linear-gradient(135deg,#5eead4,#818cf8);
+  color: #000;
+}
+.card {
+  margin-top: 24px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 20px;
+}
+.week {
+  display: grid;
+  grid-template-columns: repeat(7,1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+.day {
+  background: rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 10px;
+  text-align: center;
+  font-size: 13px;
+}
+.lang {
+  float:right;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+  <select class="lang" onchange="setLang(this.value)">
+    <option value="zh">中文</option>
+    <option value="en">English</option>
+    <option value="ja">日本語</option>
+  </select>
+
+  <h1 id="title">天氣查詢</h1>
+
+  <input id="city" placeholder="輸入城市，如 Tokyo" />
+  <button onclick="search()">搜索</button>
+
+  <div id="result"></div>
+</div>
+
+<script>
+const PROXY_BASE = "/weather?url=";
+let LANG = "zh";
+
+const TEXT = {
+  zh: { title:"天氣查詢", max:"最高", min:"最低" },
+  en: { title:"Weather", max:"Max", min:"Min" },
+  ja: { title:"天気", max:"最高", min:"最低" }
+};
+
+function setLang(l){
+  LANG = l;
+  document.getElementById("title").innerText = TEXT[l].title;
+}
+
+async function search() {
+  const city = document.getElementById("city").value;
+  const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=${LANG}`;
+  const geo = await fetch(PROXY_BASE + encodeURIComponent(geoUrl)).then(r=>r.json());
+
+  if (!geo.results) return alert("City not found");
+
+  const { latitude, longitude, name, country } = geo.results[0];
+  loadWeather(latitude, longitude, name, country);
+}
+
+async function loadWeather(lat, lon, name, country) {
+  const api = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min&timezone=auto`;
+  const data = await fetch(PROXY_BASE + encodeURIComponent(api)).then(r=>r.json());
+
+  let html = `<div class="card"><h2>${name}, ${country}</h2><div class="week">`;
+
+  data.daily.time.forEach((d,i)=>{
+    html += `
+      <div class="day">
+        <div>${d.slice(5)}</div>
+        <div>${TEXT[LANG].max}: ${data.daily.temperature_2m_max[i]}°</div>
+        <div>${TEXT[LANG].min}: ${data.daily.temperature_2m_min[i]}°</div>
+      </div>`;
+  });
+
+  html += "</div></div>";
+  document.getElementById("result").innerHTML = html;
+}
+
+// IP 自動定位
+(async ()=>{
+  const ip = await fetch(PROXY_BASE + encodeURIComponent("https://ipapi.co/json/")).then(r=>r.json());
+  loadWeather(ip.latitude, ip.longitude, ip.city, ip.country_name);
+})();
+</script>
+</body>
+</html>
