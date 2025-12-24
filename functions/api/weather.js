@@ -1,38 +1,33 @@
 export async function onRequest(context) {
-  const city = context.request.url.match(/city=([^&]+)/);
-  if (!city) {
-    return json({ error: '缺少 city 參數' });
+  const { request } = context;
+  const url = new URL(request.url);
+
+  const lat = url.searchParams.get("lat");
+  const lon = url.searchParams.get("lon");
+
+  if (!lat || !lon) {
+    return new Response(JSON.stringify({ error: "Missing lat/lon" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
-  const name = decodeURIComponent(city[1]);
+  const apiUrl = `https://api.open-meteo.com/v1/forecast
+    ?latitude=${lat}
+    &longitude=${lon}
+    &current_weather=true
+    &daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_probability_max
+    &forecast_days=7
+    &timezone=auto
+  `.replace(/\s+/g, "");
 
-  // 用 Open-Meteo 的地理搜尋
-  const geo = await fetch(
-    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1`
-  ).then(r => r.json());
+  const res = await fetch(apiUrl);
+  const data = await res.json();
 
-  if (!geo.results || !geo.results.length) {
-    return json({ error: '找不到城市' });
-  }
-
-  const { latitude, longitude, name: cityName } = geo.results[0];
-
-  const weather = await fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
-  ).then(r => r.json());
-
-  const w = weather.current_weather;
-
-  return json({
-    city: cityName,
-    temperature: w.temperature,
-    wind: w.windspeed,
-    time: w.time
-  });
-}
-
-function json(data) {
   return new Response(JSON.stringify(data), {
-    headers: { 'Content-Type': 'application/json' }
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*"
+    }
   });
 }
